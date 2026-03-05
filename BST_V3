@@ -6,7 +6,7 @@
 <title>BST Platform V2.0 — Enhanced</title>
 <style>
 /* ============================================================
-   BST PLATFORM V3.0 — ENHANCED DESIGN SYSTEM
+   BST PLATFORM V2.0 — ENHANCED DESIGN SYSTEM
    Dark / Light Mode + AI Dashboard + Multi-View + Performance
    ============================================================ */
 
@@ -538,9 +538,6 @@ svg { display: block; }
   grid-template-columns: 220px 1fr 420px;
   min-height: 100vh;
 }
-/* ============================================================
-   AI DASHBOARD PANELS
-   ============================================================ */
 .ai-left-panel {
   background: var(--color-sidebar-bg);
   border-right: 1px solid var(--color-sidebar-border);
@@ -1045,7 +1042,6 @@ svg { display: block; }
               <div style="display:flex;align-items:center;gap:var(--space-3);padding:10px var(--space-5);border-bottom:1px solid var(--color-border-subtle)">
                 <div class="priority-dot high"></div>
                 <div style="flex:1">
-                  <div style="flex:1">
                   <div style="font-size:var(--text-sm);font-weight:500;color:var(--color-text-primary)">热失控仿真模型验证</div>
                   <div style="font-size:var(--text-xs);color:var(--color-text-quaternary);margin-top:2px">TSK-019 · 安全评审支撑</div>
                 </div>
