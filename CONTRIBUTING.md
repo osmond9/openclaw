@@ -1,161 +1,2779 @@
-# Contributing to OpenClaw
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BST Platform V2.0 — Enhanced</title>
+<style>
+/* ============================================================
+   BST PLATFORM V2.0 — ENHANCED DESIGN SYSTEM
+   Dark / Light Mode + AI Dashboard + Multi-View + Performance
+   ============================================================ */
 
-Welcome to the lobster tank! 🦞
+/* --- CSS Variables (Dark Theme - Default) --- */
+:root,
+[data-theme="dark"] {
+  --color-bg: #09090B;
+  --color-bg-elevated: #18181B;
+  --color-bg-subtle: #1E1E22;
+  --color-bg-hover: #27272A;
+  --color-bg-active: #2C2C30;
+  --color-surface: #131316;
+  --color-surface-hover: #1C1C20;
+  --color-border: #27272A;
+  --color-border-subtle: #1F1F23;
+  --color-border-strong: #3F3F46;
+  --color-text-primary: #FAFAFA;
+  --color-text-secondary: #A1A1AA;
+  --color-text-tertiary: #71717A;
+  --color-text-quaternary: #52525B;
+  --color-accent: #6366F1;
+  --color-accent-hover: #818CF8;
+  --color-accent-subtle: rgba(99,102,241,0.12);
+  --color-accent-border: rgba(99,102,241,0.3);
+  --color-green: #22C55E;
+  --color-green-subtle: rgba(34,197,94,0.12);
+  --color-yellow: #EAB308;
+  --color-yellow-subtle: rgba(234,179,8,0.12);
+  --color-red: #EF4444;
+  --color-red-subtle: rgba(239,68,68,0.12);
+  --color-blue: #3B82F6;
+  --color-blue-subtle: rgba(59,130,246,0.12);
+  --color-orange: #F97316;
+  --color-orange-subtle: rgba(249,115,22,0.12);
+  --color-purple: #A855F7;
+  --color-purple-subtle: rgba(168,85,247,0.12);
+  --color-sidebar-bg: #0C0C0F;
+  --color-sidebar-border: #1A1A1E;
+  --color-header-bg: rgba(9,9,11,0.85);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.5);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+  --shadow-xl: 0 16px 48px rgba(0,0,0,0.6);
+  --theme-toggle-icon: '☀️';
+}
 
-## Quick Links
+/* --- Light Theme --- */
+[data-theme="light"] {
+  --color-bg: #F8F8FA;
+  --color-bg-elevated: #FFFFFF;
+  --color-bg-subtle: #F3F3F6;
+  --color-bg-hover: #EBEBEF;
+  --color-bg-active: #E2E2E8;
+  --color-surface: #FFFFFF;
+  --color-surface-hover: #F5F5F8;
+  --color-border: #E4E4E8;
+  --color-border-subtle: #EDEDF1;
+  --color-border-strong: #CACACE;
+  --color-text-primary: #111113;
+  --color-text-secondary: #52525B;
+  --color-text-tertiary: #71717A;
+  --color-text-quaternary: #A1A1AA;
+  --color-accent: #6366F1;
+  --color-accent-hover: #4F52D4;
+  --color-accent-subtle: rgba(99,102,241,0.08);
+  --color-accent-border: rgba(99,102,241,0.25);
+  --color-green: #16A34A;
+  --color-green-subtle: rgba(22,163,74,0.08);
+  --color-yellow: #CA8A04;
+  --color-yellow-subtle: rgba(202,138,4,0.08);
+  --color-red: #DC2626;
+  --color-red-subtle: rgba(220,38,38,0.08);
+  --color-blue: #2563EB;
+  --color-blue-subtle: rgba(37,99,235,0.08);
+  --color-orange: #EA580C;
+  --color-orange-subtle: rgba(234,88,12,0.08);
+  --color-purple: #9333EA;
+  --color-purple-subtle: rgba(147,51,234,0.08);
+  --color-sidebar-bg: #FFFFFF;
+  --color-sidebar-border: #E4E4E8;
+  --color-header-bg: rgba(248,248,250,0.88);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.1);
+  --shadow-xl: 0 16px 48px rgba(0,0,0,0.12);
+}
 
-- **GitHub:** https://github.com/openclaw/openclaw
-- **Vision:** [`VISION.md`](VISION.md)
-- **Discord:** https://discord.gg/qkhbAGHRBT
-- **X/Twitter:** [@steipete](https://x.com/steipete) / [@openclaw](https://x.com/openclaw)
+/* --- Typography Scale --- */
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 15px;
+  --text-lg: 17px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+  --text-4xl: 36px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-full: 9999px;
+}
 
-## Maintainers
+/* --- Reset & Base --- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; -webkit-font-smoothing: antialiased; }
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+  overflow-x: hidden;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, textarea, select { font-family: inherit; }
+svg { display: block; }
 
-- **Peter Steinberger** - Benevolent Dictator
-  - GitHub: [@steipete](https://github.com/steipete) · X: [@steipete](https://x.com/steipete)
+/* ============================================================
+   THEME TOGGLE
+   ============================================================ */
+.theme-toggle {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: 6px 12px;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-md);
+}
+.theme-toggle:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
+}
+.theme-toggle-icon { font-size: 14px; line-height: 1; }
 
-- **Shadow** - Discord subsystem, Discord admin, Clawhub, all community moderation
-  - GitHub: [@thewilloftheshadow](https://github.com/thewilloftheshadow) · X: [@4shad0wed](https://x.com/4shad0wed)
+/* ============================================================
+   PAGE NAVIGATION (Demo Pages)
+   ============================================================ */
+.page-nav {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9998;
+  display: flex;
+  gap: var(--space-2);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding: 6px 8px;
+  box-shadow: var(--shadow-xl);
+}
+.page-nav-btn {
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.page-nav-btn:hover { color: var(--color-text-primary); background: var(--color-bg-hover); }
+.page-nav-btn.active { background: var(--color-accent); color: white; }
 
-- **Vignesh** - Memory (QMD), formal modeling, TUI, IRC, and Lobster
-  - GitHub: [@vignesh07](https://github.com/vignesh07) · X: [@\_vgnsh](https://x.com/_vgnsh)
+/* ============================================================
+   PAGE SECTIONS
+   ============================================================ */
+.page-section { display: none; min-height: 100vh; }
+.page-section.active { display: block; }
 
-- **Jos** - Telegram, API, Nix mode
-  - GitHub: [@joshp123](https://github.com/joshp123) · X: [@jjpcodes](https://x.com/jjpcodes)
+/* ============================================================
+   APP SHELL
+   ============================================================ */
+.app-shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
 
-- **Ayaan Zaidi** - Telegram subsystem, iOS app
-  - GitHub: [@obviyus](https://github.com/obviyus) · X: [@0bviyus](https://x.com/0bviyus)
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+.sidebar {
+  background: var(--color-sidebar-bg);
+  border-right: 1px solid var(--color-sidebar-border);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-4);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+.sidebar-logo {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, var(--color-accent), #8B5CF6);
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  font-size: var(--text-sm); font-weight: 700; color: white;
+  flex-shrink: 0;
+}
+.sidebar-title { font-size: var(--text-sm); font-weight: 600; color: var(--color-text-primary); }
+.sidebar-version {
+  font-size: var(--text-xs); color: var(--color-text-quaternary);
+  background: var(--color-bg-subtle); border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm); padding: 1px 6px; margin-left: auto;
+}
+.sidebar-nav { padding: var(--space-3) var(--space-3); flex: 1; }
+.nav-section-label {
+  font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--color-text-quaternary);
+  padding: var(--space-3) var(--space-2) var(--space-2); margin-top: var(--space-2);
+}
+.nav-item {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: 7px var(--space-2); border-radius: var(--radius-md);
+  font-size: var(--text-sm); color: var(--color-text-secondary);
+  cursor: pointer; transition: all 0.12s ease; position: relative;
+}
+.nav-item:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.nav-item.active { background: var(--color-accent-subtle); color: var(--color-accent-hover); }
+.nav-icon { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.7; }
+.nav-icon svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.nav-badge {
+  margin-left: auto; font-size: var(--text-xs); font-weight: 600;
+  background: var(--color-accent-subtle); color: var(--color-accent);
+  border-radius: var(--radius-full); padding: 1px 7px;
+}
+.sidebar-footer {
+  padding: var(--space-4); border-top: 1px solid var(--color-border-subtle);
+}
+.sidebar-user {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-2) var(--space-2); border-radius: var(--radius-md);
+  cursor: pointer; transition: background 0.12s ease;
+}
+.sidebar-user:hover { background: var(--color-bg-hover); }
+.user-avatar {
+  width: 32px; height: 32px; border-radius: var(--radius-full);
+  background: linear-gradient(135deg, #6366F1, #A855F7);
+  display: flex; align-items: center; justify-content: center;
+  font-size: var(--text-xs); font-weight: 700; color: white; flex-shrink: 0;
+}
+.user-name { font-size: var(--text-sm); font-weight: 500; color: var(--color-text-primary); }
+.user-role { font-size: var(--text-xs); color: var(--color-text-quaternary); }
 
-- **Tyler Yust** - Agents/subagents, cron, BlueBubbles, macOS app
-  - GitHub: [@tyler6204](https://github.com/tyler6204) · X: [@tyleryust](https://x.com/tyleryust)
+/* ============================================================
+   CONTENT AREA
+   ============================================================ */
+.content-area {
+  background: var(--color-bg);
+  display: flex; flex-direction: column;
+  min-height: 100vh;
+  transition: background 0.3s ease;
+}
 
-- **Mariano Belinky** - iOS app, Security
-  - GitHub: [@mbelinky](https://github.com/mbelinky) · X: [@belimad](https://x.com/belimad)
+/* ============================================================
+   PAGE HEADER
+   ============================================================ */
+.page-header {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--color-header-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding: var(--space-4) var(--space-6);
+  transition: background 0.3s ease;
+}
+.page-header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
+.page-title { font-size: var(--text-xl); font-weight: 700; letter-spacing: -0.02em; color: var(--color-text-primary); }
+.page-subtitle { font-size: var(--text-sm); color: var(--color-text-tertiary); margin-top: 2px; }
 
-- **Nimrod Gutman** - iOS app, macOS app and crustacean features
-  - GitHub: [@ngutman](https://github.com/ngutman) · X: [@theguti](https://x.com/theguti)
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: 7px 14px; border-radius: var(--radius-md);
+  font-size: var(--text-sm); font-weight: 500; cursor: pointer;
+  transition: all 0.15s ease; border: 1px solid transparent; white-space: nowrap;
+}
+.btn-primary { background: var(--color-accent); color: white; border-color: var(--color-accent); }
+.btn-primary:hover { background: var(--color-accent-hover); }
+.btn-secondary {
+  background: var(--color-bg-elevated); color: var(--color-text-secondary);
+  border-color: var(--color-border);
+}
+.btn-secondary:hover { background: var(--color-bg-hover); color: var(--color-text-primary); border-color: var(--color-border-strong); }
+.btn-ghost { color: var(--color-text-secondary); }
+.btn-ghost:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.btn-sm { padding: 5px 10px; font-size: var(--text-xs); }
+.btn-icon { padding: 7px; }
+.btn-group { display: flex; gap: var(--space-2); align-items: center; flex-wrap: wrap; }
 
-- **Vincent Koc** - Agents, Telemetry, Hooks, Security
-  - GitHub: [@vincentkoc](https://github.com/vincentkoc) · X: [@vincent_koc](https://x.com/vincent_koc)
+/* ============================================================
+   VIEW SWITCHER
+   ============================================================ */
+.view-switcher {
+  display: flex;
+  background: var(--color-bg-subtle);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  gap: 2px;
+}
+.view-switcher-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 5px 10px; border-radius: var(--radius-sm);
+  font-size: var(--text-xs); font-weight: 500;
+  color: var(--color-text-tertiary); cursor: pointer;
+  transition: all 0.15s ease; white-space: nowrap;
+}
+.view-switcher-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+.view-switcher-btn:hover { color: var(--color-text-primary); background: var(--color-bg-hover); }
+.view-switcher-btn.active { background: var(--color-bg-elevated); color: var(--color-text-primary); box-shadow: var(--shadow-sm); }
 
-- **Val Alexander** - UI/UX, Docs, and Agent DevX
-  - GitHub: [@BunsDev](https://github.com/BunsDev) · X: [@BunsDev](https://x.com/BunsDev)
+/* ============================================================
+   STAT CARDS
+   ============================================================ */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
+.stat-card {
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); padding: var(--space-5);
+  transition: all 0.2s ease;
+}
+.stat-card:hover { border-color: var(--color-border-strong); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.stat-label { font-size: var(--text-xs); color: var(--color-text-tertiary); font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: var(--space-3); }
+.stat-value { font-size: var(--text-3xl); font-weight: 700; letter-spacing: -0.03em; color: var(--color-text-primary); line-height: 1; }
+.stat-change { display: flex; align-items: center; gap: 4px; font-size: var(--text-xs); margin-top: var(--space-2); }
+.stat-change.up { color: var(--color-green); }
+.stat-change.down { color: var(--color-red); }
+.stat-change.neutral { color: var(--color-text-tertiary); }
 
-- **Seb Slight** - Docs, Agent Reliability, Runtime Hardening
-  - GitHub: [@sebslight](https://github.com/sebslight) · X: [@sebslig](https://x.com/sebslig)
+/* ============================================================
+   TAGS / BADGES
+   ============================================================ */
+.tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: var(--radius-full);
+  font-size: var(--text-xs); font-weight: 500; white-space: nowrap;
+}
+.tag-green { background: var(--color-green-subtle); color: var(--color-green); }
+.tag-yellow { background: var(--color-yellow-subtle); color: var(--color-yellow); }
+.tag-red { background: var(--color-red-subtle); color: var(--color-red); }
+.tag-blue { background: var(--color-blue-subtle); color: var(--color-blue); }
+.tag-purple { background: var(--color-purple-subtle); color: var(--color-purple); }
+.tag-orange { background: var(--color-orange-subtle); color: var(--color-orange); }
+.tag-neutral { background: var(--color-bg-subtle); color: var(--color-text-tertiary); border: 1px solid var(--color-border); }
 
-- **Christoph Nakazawa** - JS Infra
-  - GitHub: [@cpojer](https://github.com/cpojer) · X: [@cnakazawa](https://x.com/cnakazawa)
+/* ============================================================
+   PRIORITY DOT
+   ============================================================ */
+.priority-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.priority-dot.high { background: var(--color-red); box-shadow: 0 0 6px var(--color-red); }
+.priority-dot.medium { background: var(--color-yellow); }
+.priority-dot.low { background: var(--color-green); }
+.priority-dot.critical { background: var(--color-purple); box-shadow: 0 0 6px var(--color-purple); }
 
-- **Gustavo Madeira Santana** - Multi-agents, CLI, web UI
-  - GitHub: [@gumadeiras](https://github.com/gumadeiras) · X: [@gumadeiras](https://x.com/gumadeiras)
+/* ============================================================
+   PROGRESS BAR
+   ============================================================ */
+.progress-bar {
+  width: 100%; height: 4px; background: var(--color-bg-hover);
+  border-radius: var(--radius-full); overflow: hidden;
+}
+.progress-fill {
+  height: 100%; border-radius: var(--radius-full);
+  transition: width 0.5s ease;
+}
+.progress-fill.green { background: linear-gradient(90deg, var(--color-green), #4ADE80); }
+.progress-fill.blue { background: linear-gradient(90deg, var(--color-blue), #60A5FA); }
+.progress-fill.purple { background: linear-gradient(90deg, var(--color-accent), var(--color-purple)); }
+.progress-fill.yellow { background: linear-gradient(90deg, var(--color-yellow), #FDE047); }
+.progress-fill.red { background: linear-gradient(90deg, var(--color-red), #F87171); }
 
-- **Onur Solmaz** - Agents, dev workflows, ACP integrations, MS Teams
-  - GitHub: [@onutc](https://github.com/onutc), [@osolmaz](https://github.com/osolmaz) · X: [@onusoz](https://x.com/onusoz)
+/* ============================================================
+   SECTION HEADERS
+   ============================================================ */
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+.section-title { font-size: var(--text-md); font-weight: 600; color: var(--color-text-primary); }
+.section-action { font-size: var(--text-xs); color: var(--color-accent); cursor: pointer; }
+.section-action:hover { color: var(--color-accent-hover); }
 
-- **Josh Avant** - Core, CLI, Gateway, Security, Agents
-  - GitHub: [@joshavant](https://github.com/joshavant) · X: [@joshavant](https://x.com/joshavant)
+/* ============================================================
+   TABLE
+   ============================================================ */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th {
+  text-align: left; font-size: var(--text-xs); font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-quaternary);
+  padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-subtle);
+}
+.data-table td {
+  padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border-subtle);
+  font-size: var(--text-sm); color: var(--color-text-secondary);
+}
+.data-table tr:hover td { background: var(--color-surface-hover); }
+.data-table tr:last-child td { border-bottom: none; }
 
-- **Jonathan Taylor** - ACP subsystem, Gateway features/bugs, Gog/Mog/Sog CLI's, SEDMAT
-  - Github [@visionik](https://github.com/visionik) · X: [@visionik](https://x.com/visionik)
-- **Josh Lehman** - Compaction, Tlon/Urbit subsystem
-  - Github [@jalehman](https://github.com/jalehman) · X: [@jlehman\_](https://x.com/jlehman_)
+/* ============================================================
+   KANBAN
+   ============================================================ */
+.kanban-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
+.kanban-column {
+  background: var(--color-bg-subtle); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); padding: var(--space-4); min-height: 400px;
+}
+.kanban-column-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+.kanban-column-title { font-size: var(--text-sm); font-weight: 600; color: var(--color-text-primary); }
+.kanban-column-count {
+  font-size: var(--text-xs); background: var(--color-bg-hover);
+  color: var(--color-text-tertiary); border-radius: var(--radius-full);
+  padding: 1px 8px;
+}
+.kanban-card {
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); padding: var(--space-3); margin-bottom: var(--space-3);
+  cursor: pointer; transition: all 0.15s ease;
+}
+.kanban-card:hover { border-color: var(--color-border-strong); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.kanban-card-title { font-size: var(--text-sm); font-weight: 500; color: var(--color-text-primary); margin-bottom: var(--space-2); line-height: 1.4; }
+.kanban-card-meta { display: flex; align-items: center; justify-content: space-between; margin-top: var(--space-3); }
 
-## How to Contribute
+/* ============================================================
+   GANTT CHART
+   ============================================================ */
+.gantt-container { overflow-x: auto; }
+.gantt-table { width: 100%; border-collapse: collapse; min-width: 900px; }
+.gantt-table th {
+  font-size: var(--text-xs); font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--color-text-quaternary);
+  padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-subtle); white-space: nowrap;
+}
+.gantt-table td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--color-border-subtle); vertical-align: middle; }
+.gantt-table tr:hover td { background: var(--color-surface-hover); }
+.gantt-bar-cell { min-width: 500px; }
+.gantt-bar-wrap { position: relative; height: 24px; background: var(--color-bg-hover); border-radius: var(--radius-sm); overflow: hidden; }
+.gantt-bar {
+  position: absolute; top: 4px; height: 16px;
+  border-radius: var(--radius-sm); display: flex; align-items: center;
+  padding: 0 6px; font-size: 10px; font-weight: 600; color: white;
+  white-space: nowrap; overflow: hidden;
+}
+.gantt-months { display: flex; background: var(--color-bg-subtle); border-bottom: 1px solid var(--color-border); }
+.gantt-month { flex: 1; text-align: center; font-size: var(--text-xs); color: var(--color-text-quaternary); padding: var(--space-2); border-right: 1px solid var(--color-border-subtle); }
 
-1. **Bugs & small fixes** → Open a PR!
-2. **New features / architecture** → Start a [GitHub Discussion](https://github.com/openclaw/openclaw/discussions) or ask in Discord first
-3. **Questions** → Discord [#help](https://discord.com/channels/1456350064065904867/1459642797895319552) / [#users-helping-users](https://discord.com/channels/1456350064065904867/1459007081603403828)
+/* ============================================================
+   WBS TREE
+   ============================================================ */
+.wbs-tree { font-size: var(--text-sm); }
+.wbs-node { margin-bottom: 2px; }
+.wbs-node-header {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: 7px var(--space-3); border-radius: var(--radius-md);
+  cursor: pointer; transition: background 0.12s ease;
+}
+.wbs-node-header:hover { background: var(--color-bg-hover); }
+.wbs-toggle { width: 16px; height: 16px; flex-shrink: 0; color: var(--color-text-tertiary); }
+.wbs-toggle svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
+.wbs-icon { width: 18px; height: 18px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; }
+.wbs-label { font-weight: 500; color: var(--color-text-primary); flex: 1; }
+.wbs-children { margin-left: 24px; border-left: 1px solid var(--color-border-subtle); padding-left: var(--space-3); margin-top: 2px; }
+.wbs-leaf .wbs-node-header { padding: 5px var(--space-3); }
+.wbs-leaf .wbs-label { font-weight: 400; color: var(--color-text-secondary); }
 
-## Before You PR
+/* ============================================================
+   CHART AREA (CSS-based)
+   ============================================================ */
+.chart-bar-group { display: flex; align-items: flex-end; gap: 4px; height: 120px; }
+.chart-bar-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.chart-bar {
+  width: 100%; border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  transition: height 0.5s ease;
+}
+.chart-bar-label { font-size: 10px; color: var(--color-text-quaternary); white-space: nowrap; }
 
-- Test locally with your OpenClaw instance
-- Run tests: `pnpm build && pnpm check && pnpm test`
-- Ensure CI checks pass
-- Keep PRs focused (one thing per PR; do not mix unrelated concerns)
-- Describe what & why
+/* ============================================================
+   MODAL / OVERLAY (view panels)
+   ============================================================ */
+.view-panel { display: none; }
+.view-panel.active { display: block; }
 
-## Control UI Decorators
+/* ============================================================
+   AI DASHBOARD (Cursor-style)
+   ============================================================ */
+.ai-dashboard-shell {
+  display: grid;
+  grid-template-columns: 220px 1fr 420px;
+  min-height: 100vh;
+}
+/* ============================================================
+   AI DASHBOARD PANELS
+   ============================================================ */
+.ai-left-panel {
+  background: var(--color-sidebar-bg);
+  border-right: 1px solid var(--color-sidebar-border);
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+}
+.ai-main-panel {
+  background: var(--color-bg);
+  overflow-y: auto;
+  padding: var(--space-6);
+  display: flex; flex-direction: column; gap: var(--space-6);
+}
+.ai-chat-panel {
+  background: var(--color-sidebar-bg);
+  border-left: 1px solid var(--color-sidebar-border);
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh;
+}
 
-The Control UI uses Lit with **legacy** decorators (current Rollup parsing does not support
-`accessor` fields required for standard decorators). When adding reactive fields, keep the
-legacy style:
+/* AI greeting stream */
+.ai-greeting-block {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  position: relative; overflow: hidden;
+}
+.ai-greeting-block::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(168,85,247,0.04) 100%);
+  pointer-events: none;
+}
+.ai-greeting-header { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-5); }
+.ai-avatar-ring {
+  width: 44px; height: 44px; border-radius: var(--radius-full);
+  background: linear-gradient(135deg, #6366F1, #A855F7);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; position: relative;
+  box-shadow: 0 0 0 3px var(--color-accent-subtle), 0 0 20px rgba(99,102,241,0.3);
+}
+.ai-pulse {
+  position: absolute; top: -2px; right: -2px;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--color-green);
+  border: 2px solid var(--color-sidebar-bg);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+@keyframes pulse-glow {
+  0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
+  50% { box-shadow: 0 0 0 4px rgba(34,197,94,0); }
+}
+.ai-greeting-name { font-size: var(--text-lg); font-weight: 700; color: var(--color-text-primary); }
+.ai-greeting-sub { font-size: var(--text-xs); color: var(--color-text-tertiary); }
+.ai-greeting-text { font-size: var(--text-sm); color: var(--color-text-secondary); line-height: 1.7; }
+.ai-greeting-text strong { color: var(--color-text-primary); }
+.ai-typing-cursor {
+  display: inline-block; width: 2px; height: 14px;
+  background: var(--color-accent); border-radius: 1px; margin-left: 2px;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
-```ts
-@state() foo = "bar";
-@property({ type: Number }) count = 0;
-```
+/* AI Info Cards Grid */
+.ai-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+.ai-info-card {
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); padding: var(--space-4);
+  transition: all 0.2s ease;
+}
+.ai-info-card:hover { border-color: var(--color-border-strong); box-shadow: var(--shadow-md); }
+.ai-info-card-header {
+  display: flex; align-items: center; gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.ai-info-card-icon {
+  width: 28px; height: 28px; border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.ai-info-card-title { font-size: var(--text-sm); font-weight: 600; color: var(--color-text-primary); }
 
-The root `tsconfig.json` is configured for legacy decorators (`experimentalDecorators: true`)
-with `useDefineForClassFields: false`. Avoid flipping these unless you are also updating the UI
-build tooling to support standard decorators.
+/* AI Chat Panel */
+.ai-chat-header {
+  padding: var(--space-4) var(--space-4);
+  border-bottom: 1px solid var(--color-border-subtle);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.ai-chat-title { font-size: var(--text-sm); font-weight: 600; color: var(--color-text-primary); }
+.ai-chat-messages {
+  flex: 1; overflow-y: auto; padding: var(--space-4);
+  display: flex; flex-direction: column; gap: var(--space-4);
+}
+.chat-msg { display: flex; gap: var(--space-3); max-width: 100%; }
+.chat-msg.user { flex-direction: row-reverse; }
+.chat-msg-avatar {
+  width: 28px; height: 28px; border-radius: var(--radius-full);
+  background: linear-gradient(135deg, #6366F1, #A855F7);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: white; flex-shrink: 0;
+}
+.chat-msg-avatar.user-av {
+  background: linear-gradient(135deg, #3B82F6, #6366F1);
+}
+.chat-bubble {
+  max-width: 82%; padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg); font-size: var(--text-sm);
+  line-height: 1.6; color: var(--color-text-secondary);
+  background: var(--color-bg-elevated); border: 1px solid var(--color-border);
+}
+.chat-msg.user .chat-bubble {
+  background: var(--color-accent); color: white; border-color: transparent;
+  border-bottom-right-radius: var(--radius-sm);
+}
+.chat-bubble p { margin-bottom: var(--space-2); }
+.chat-bubble p:last-child { margin-bottom: 0; }
+.chat-bubble code {
+  background: var(--color-bg-subtle); padding: 1px 5px;
+  border-radius: 4px; font-family: var(--font-mono); font-size: var(--text-xs);
+}
 
-## AI/Vibe-Coded PRs Welcome! 🤖
+/* AI Quick Commands */
+.ai-quick-cmds {
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-border-subtle);
+}
+.ai-quick-label {
+  font-size: var(--text-xs); color: var(--color-text-quaternary);
+  font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em;
+  margin-bottom: var(--space-2);
+}
+.ai-quick-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ai-quick-chip {
+  padding: 4px 10px; border-radius: var(--radius-full);
+  font-size: var(--text-xs); font-weight: 500;
+  background: var(--color-bg-elevated); border: 1px solid var(--color-border);
+  color: var(--color-text-secondary); cursor: pointer; transition: all 0.15s ease;
+}
+.ai-quick-chip:hover {
+  background: var(--color-accent-subtle); border-color: var(--color-accent-border);
+  color: var(--color-accent-hover);
+}
 
-Built with Codex, Claude, or other AI tools? **Awesome - just mark it!**
+/* AI Chat Input */
+.ai-chat-input-area {
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border-subtle);
+}
+.ai-input-box {
+  display: flex; align-items: flex-end; gap: var(--space-2);
+  background: var(--color-bg-elevated); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); padding: var(--space-3);
+  transition: border-color 0.15s ease;
+}
+.ai-input-box:focus-within { border-color: var(--color-accent-border); }
+.ai-input-field {
+  flex: 1; background: none; border: none; outline: none; resize: none;
+  font-size: var(--text-sm); color: var(--color-text-primary);
+  line-height: 1.5; max-height: 120px; min-height: 20px;
+  font-family: var(--font-sans);
+}
+.ai-input-field::placeholder { color: var(--color-text-quaternary); }
+.ai-send-btn {
+  width: 30px; height: 30px; border-radius: var(--radius-md);
+  background: var(--color-accent); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.15s ease; flex-shrink: 0;
+}
+.ai-send-btn:hover { background: var(--color-accent-hover); }
+.ai-send-btn svg { width: 14px; height: 14px; stroke: white; fill: none; stroke-width: 2; }
 
-Please include in your PR:
+/* AI Left Panel Items */
+.ai-left-section {
+  padding: var(--space-3) var(--space-3);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+.ai-left-section-title {
+  font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--color-text-quaternary);
+  margin-bottom: var(--space-2); padding: 0 var(--space-2);
+}
+.ai-summary-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px var(--space-2); border-radius: var(--radius-sm);
+  cursor: pointer; transition: background 0.1s ease;
+}
+.ai-summary-item:hover { background: var(--color-bg-hover); }
+.ai-summary-label { font-size: var(--text-xs); color: var(--color-text-secondary); }
+.ai-summary-val { font-size: var(--text-xs); font-weight: 600; font-family: var(--font-mono); color: var(--color-text-primary); }
 
-- [ ] Mark as AI-assisted in the PR title or description
-- [ ] Note the degree of testing (untested / lightly tested / fully tested)
-- [ ] Include prompts or session logs if possible (super helpful!)
-- [ ] Confirm you understand what the code does
+/* ============================================================
+   PERFORMANCE DASHBOARD
+   ============================================================ */
+.perf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); }
+.perf-score-ring {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: var(--space-6) 0;
+}
+.ring-wrap { position: relative; width: 140px; height: 140px; }
+.ring-svg { width: 140px; height: 140px; transform: rotate(-90deg); }
+.ring-bg { fill: none; stroke: var(--color-bg-hover); stroke-width: 10; }
+.ring-fill { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+.ring-center {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+}
+.ring-score { font-size: var(--text-3xl); font-weight: 800; letter-spacing: -0.04em; color: var(--color-text-primary); line-height: 1; }
+.ring-score-label { font-size: var(--text-xs); color: var(--color-text-tertiary); margin-top: 2px; }
 
-AI PRs are first-class citizens here. We just want transparency so reviewers know what to look for.
+.perf-kpi-list { display: flex; flex-direction: column; gap: var(--space-3); }
+.perf-kpi-item {
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); padding: var(--space-3) var(--space-4);
+}
+.perf-kpi-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+.perf-kpi-name { font-size: var(--text-sm); font-weight: 500; color: var(--color-text-primary); }
+.perf-kpi-score { font-size: var(--text-sm); font-weight: 700; font-family: var(--font-mono); }
+.perf-kpi-weight { font-size: var(--text-xs); color: var(--color-text-quaternary); }
+.perf-kpi-meta { display: flex; align-items: center; justify-content: space-between; margin-top: var(--space-2); }
+.perf-kpi-target { font-size: var(--text-xs); color: var(--color-text-tertiary); }
 
-## Current Focus & Roadmap 🗺
+/* Radar / heatmap css placeholders */
+.perf-heatmap { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.heatmap-cell {
+  aspect-ratio: 1; border-radius: 3px;
+  transition: transform 0.15s ease;
+}
+.heatmap-cell:hover { transform: scale(1.2); cursor: pointer; }
+.heatmap-label { font-size: 9px; color: var(--color-text-quaternary); text-align: center; margin-top: 3px; }
 
-We are currently prioritizing:
+/* Trend chart */
+.trend-line-wrap {
+  position: relative; height: 80px;
+  overflow: hidden;
+}
+.trend-svg { width: 100%; height: 80px; }
 
-- **Stability**: Fixing edge cases in channel connections (WhatsApp/Telegram).
-- **UX**: Improving the onboarding wizard and error messages.
-- **Skills**: For skill contributions, head to [ClawHub](https://clawhub.ai/) — the community hub for OpenClaw skills.
-- **Performance**: Optimizing token usage and compaction logic.
+/* ============================================================
+   CONTENT PADDING
+   ============================================================ */
+.content-body { padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-6); }
+.card {
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--color-border-subtle);
+}
+.card-title { font-size: var(--text-sm); font-weight: 600; color: var(--color-text-primary); }
+.card-body { padding: var(--space-5); }
 
-Check the [GitHub Issues](https://github.com/openclaw/openclaw/issues) for "good first issue" labels!
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border-strong); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-quaternary); }
 
-## Maintainers
+/* ============================================================
+   DIVIDER
+   ============================================================ */
+.divider { height: 1px; background: var(--color-border-subtle); margin: var(--space-4) 0; }
 
-We're selectively expanding the maintainer team.
-If you're an experienced contributor who wants to help shape OpenClaw's direction — whether through code, docs, or community — we'd like to hear from you.
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: var(--space-12); text-align: center; color: var(--color-text-quaternary);
+  font-size: var(--text-sm);
+}
+.empty-state svg { width: 36px; height: 36px; margin-bottom: var(--space-3); opacity: 0.4; stroke: currentColor; fill: none; }
 
-Being a maintainer is a responsibility, not an honorary title. We expect active, consistent involvement — triaging issues, reviewing PRs, and helping move the project forward.
+/* ============================================================
+   RESPONSIVE UTILS
+   ============================================================ */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-3); }
+.gap-4 { gap: var(--space-4); }
+.flex-1 { flex: 1; }
+.ml-auto { margin-left: auto; }
+.font-mono { font-family: var(--font-mono); }
+.text-xs { font-size: var(--text-xs); }
+.text-sm { font-size: var(--text-sm); }
+.text-tertiary { color: var(--color-text-tertiary); }
+.text-quaternary { color: var(--color-text-quaternary); }
+.text-primary { color: var(--color-text-primary); }
+.font-600 { font-weight: 600; }
+.mt-2 { margin-top: var(--space-2); }
+.mt-3 { margin-top: var(--space-3); }
+.mt-4 { margin-top: var(--space-4); }
+.mb-3 { margin-bottom: var(--space-3); }
+.mb-4 { margin-bottom: var(--space-4); }
+.w-full { width: 100%; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-4); }
+.grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: var(--space-4); }
 
-Still interested? Email contributing@openclaw.ai with:
+/* AI mode toggle btn */
+.ai-mode-toggle {
+  display: flex; align-items: center; gap: var(--space-2);
+  padding: 7px 14px; border-radius: var(--radius-full);
+  font-size: var(--text-sm); font-weight: 500; cursor: pointer;
+  background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(168,85,247,0.15));
+  border: 1px solid var(--color-accent-border);
+  color: var(--color-accent-hover);
+  transition: all 0.2s ease;
+}
+.ai-mode-toggle:hover {
+  background: linear-gradient(135deg, rgba(99,102,241,0.25), rgba(168,85,247,0.25));
+  border-color: var(--color-accent);
+}
+.ai-mode-toggle.active {
+  background: linear-gradient(135deg, #6366F1, #A855F7);
+  border-color: transparent; color: white;
+}
+.ai-badge {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.05em;
+  background: rgba(255,255,255,0.2); padding: 1px 5px;
+  border-radius: var(--radius-full); text-transform: uppercase;
+}
 
-- Links to your PRs on OpenClaw (if you don't have any, start there first)
-- Links to open source projects you maintain or actively contribute to
-- Your GitHub, Discord, and X/Twitter handles
-- A brief intro: background, experience, and areas of interest
-- Languages you speak and where you're based
-- How much time you can realistically commit
+/* Animated gradient border for AI mode */
+@keyframes gradient-border {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.ai-active-indicator {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: var(--text-xs); color: var(--color-accent-hover);
+  background: var(--color-accent-subtle); border: 1px solid var(--color-accent-border);
+  border-radius: var(--radius-full); padding: 3px 10px;
+}
+.ai-dot { width: 6px; height: 6px; background: var(--color-accent); border-radius: 50%; animation: pulse-glow 2s ease-in-out infinite; }
+</style>
+</head>
+<body>
 
-We welcome people across all skill sets — engineering, documentation, community management, and more.
-We review every human-only-written application carefully and add maintainers slowly and deliberately.
-Please allow a few weeks for a response.
+<!-- ============================================================
+     THEME TOGGLE (固定右上角)
+     ============================================================ -->
+<button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">
+  <span class="theme-toggle-icon" id="themeIcon">☀️</span>
+  <span id="themeLabel">切换白天</span>
+</button>
 
-## Report a Vulnerability
+<!-- ============================================================
+     PAGE NAVIGATION (底部导航)
+     ============================================================ -->
+<div class="page-nav" id="pageNav">
+  <button class="page-nav-btn active" onclick="showPage('home')">🏠 首页</button>
+  <button class="page-nav-btn" onclick="showPage('security')">🛡️ 安全评审</button>
+  <button class="page-nav-btn" onclick="showPage('projects')">📊 项目视图</button>
+  <button class="page-nav-btn" onclick="showPage('performance')">🏆 月度绩效</button>
+</div>
 
-We take security reports seriously. Report vulnerabilities directly to the repository where the issue lives:
+<!-- ============================================================
+     PAGE 1: HOME (含 AI 模式切换)
+     ============================================================ -->
+<div class="page-section active" id="page-home">
+<div class="app-shell">
 
-- **Core CLI and gateway** — [openclaw/openclaw](https://github.com/openclaw/openclaw)
-- **macOS desktop app** — [openclaw/openclaw](https://github.com/openclaw/openclaw) (apps/macos)
-- **iOS app** — [openclaw/openclaw](https://github.com/openclaw/openclaw) (apps/ios)
-- **Android app** — [openclaw/openclaw](https://github.com/openclaw/openclaw) (apps/android)
-- **ClawHub** — [openclaw/clawhub](https://github.com/openclaw/clawhub)
-- **Trust and threat model** — [openclaw/trust](https://github.com/openclaw/trust)
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">B</div>
+      <div>
+        <div class="sidebar-title">BST Platform</div>
+      </div>
+      <span class="sidebar-version">v2.0</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">工作台</div>
+      <div class="nav-item active" onclick="showPage('home')">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+        工作台首页
+        <span class="nav-badge">AI</span>
+      </div>
+      <div class="nav-item" onclick="showPage('security')">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+        安全评审看板
+      </div>
+      <div class="nav-item" onclick="showPage('projects')">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+        项目视图
+      </div>
+      <div class="nav-item" onclick="showPage('performance')">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
+        月度绩效
+        <span class="nav-badge">新</span>
+      </div>
+      <div class="nav-section-label">研发管理</div>
+      <div class="nav-item">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+        任务管理
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
+        文档中心
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></span>
+        会议纪要
+      </div>
+      <div class="nav-section-label">质量管理</div>
+      <div class="nav-item">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>
+        FMEA管理
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>
+        专利管理
+      </div>
+      <div class="nav-item">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>
+        数据分析
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar">ZG</div>
+        <div>
+          <div class="user-name">张工</div>
+          <div class="user-role">高级研发工程师</div>
+        </div>
+      </div>
+    </div>
+  </aside>
 
-For issues that don't fit a specific repo, or if you're unsure, email **security@openclaw.ai** and we'll route it.
+  <!-- CONTENT -->
+  <div class="content-area" id="homeContent">
+    <!-- Normal Home Header -->
+    <div class="page-header" id="normalHeader">
+      <div class="page-header-top">
+        <div>
+          <div class="page-title">工作台</div>
+          <div class="page-subtitle">2025年7月 · 第3周 · 星期一</div>
+        </div>
+        <div class="btn-group">
+          <button class="ai-mode-toggle" id="aiModeBtn" onclick="toggleAIMode()">
+            <span>✦</span>
+            <span>AI 智能模式</span>
+            <span class="ai-badge">BETA</span>
+          </button>
+          <button class="btn btn-secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            通知 <span class="tag tag-red" style="padding:1px 5px;font-size:10px">3</span>
+          </button>
+          <button class="btn btn-primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            新建任务
+          </button>
+        </div>
+      </div>
+    </div>
 
-### Required in Reports
+    <!-- ===== NORMAL HOME BODY ===== -->
+    <div class="content-body" id="normalHomeBody">
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">进行中任务</div>
+          <div class="stat-value">12</div>
+          <div class="stat-change up">↑ 2 较上周</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">本月KPI完成</div>
+          <div class="stat-value">87<span style="font-size:var(--text-xl);color:var(--color-text-tertiary)">%</span></div>
+          <div class="stat-change up">↑ 5% 环比</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">安全评审待办</div>
+          <div class="stat-value">3</div>
+          <div class="stat-change neutral">— 持平</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">专利申请进度</div>
+          <div class="stat-value">2<span style="font-size:var(--text-xl);color:var(--color-text-tertiary)">/5</span></div>
+          <div class="stat-change up">↑ 1 本月新增</div>
+        </div>
+      </div>
 
-1. **Title**
-2. **Severity Assessment**
-3. **Impact**
-4. **Affected Component**
-5. **Technical Reproduction**
-6. **Demonstrated Impact**
-7. **Environment**
-8. **Remediation Advice**
+      <!-- Tasks + Activity -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">🔥 今日任务</span>
+            <span class="section-action">查看全部</span>
+          </div>
+          <div style="padding:var(--space-2) 0;">
+            <!-- task rows -->
+            <div style="display:flex;flex-direction:column;gap:0">
+              <div style="display:flex;align-items:center;gap:var(--space-3);padding:10px var(--space-5);border-bottom:1px solid var(--color-border-subtle)">
+                <div class="priority-dot high"></div>
+                <div style="flex:1">
+                  <div style="flex:1">
+                  <div style="font-size:var(--text-sm);font-weight:500;color:var(--color-text-primary)">热失控仿真模型验证</div>
+                  <div style="font-size:var(--text-xs);color:var(--color-text-quaternary);margin-top:2px">TSK-019 · 安全评审支撑</div>
+                </div>
+                <span class="tag tag-red">紧急</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:var(--space-3);padding:10px var(--space-5);border-bottom:1px solid var(--color-border-subtle)">
+                <div class="priority-dot medium"></div>
+                <div style="flex:1">
+                  <div style="font-size:var(--text-sm);font-weight:500;color:var(--color-text-primary)">安全评审文档准备 SR-001</div>
+                  <div style="font-size:var(--text-xs);color:var(--color-text-quaternary);margin-top:2px">TSK-018 · 评审准备</div>
+                </div>
+                <span class="tag tag-yellow">高优先</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:var(--space-3);padding:10px var(--space-5);border-bottom:1px solid var(--color-border-subtle)">
+                <div class="priority-dot low"></div>
+                <div style="flex:1">
+                  <div style="font-size:var(--text-sm);font-weight:500;color:var(--color-text-primary)">BMS算法优化迭代</div>
+                  <div style="font-size:var(--text-xs);color:var(--color-text-quaternary);margin-top:2px">TSK-021 · 研发迭代</div>
+                </div>
+                <span class="tag tag-blue">进行中</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:var(--space-3);padding:10px var(--space-5);">
+                <div class="priority-dot low"></div>
+                <div style="flex:1">
+                  <div style="font-size:var(--text-sm);font-weight:500;color:var(--color-text-primary)">专利交底书撰写</div>
+                  <div style="font-size:var(--text-xs);color:var(--color-text-quaternary);margin-top:2px">TSK-022 · 知识产权</div>
+                </div>
+                <span class="tag tag-purple">计划中</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-Reports without reproduction steps, demonstrated impact, and remediation advice will be deprioritized. Given the volume of AI-generated scanner findings, we must ensure we're receiving vetted reports from researchers who understand the issues.
+        <!-- Activity Timeline -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">📋 最新动态</span>
+            <span class="section-action">全部</span>
+          </div>
+          <div class="card-body" style="padding:var(--space-4) var(--space-5);">
+            <div style="display:flex;flex-direction:column;gap:var(--space-4)">
+              <div style="display:flex;gap:var(--space-3);align-items:flex-start">
+                <div style="width:7px;height:7px;border-radius:50%;background:var(--color-green);margin-top:5px;flex-shrink:0;box-shadow:0 0 6px var(--color-green)"></div>
+                <div style="flex:1">
+                  <div style="font-size:var(--text-sm);color:var(--color-text-primary)"><strong>李工</strong> 完成了任务 <span style="color:var(--color-accent)">"电芯测试数据整理"</span></div>
+                  <div style="font-size:var(--text-xs);color:var(--color-text-quaternary);margin-top:2px">15分钟前</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:var(--space-3);align-items:flex-start">
+                <div style="width:7px;height:7px;border-radius:50%;background:var(--color-purple);margin-top:5px;flex-shrink:0"></div>
+                <div style="flex:1">
+                  <div style="font-size:var(--text-sm);color:var(--color-text-primary)">安全评审 <span style="color:var(--color-accent)">SR-001</span> 状态变更为 <span class="tag tag-orange" style="font-size:10px">评审中</span></div>
+                  <div style="font-size:var(--text-xs);color:var(--color-text-quaternary);margin-top:2px">1小时前</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:var(--space-3);align-items:flex-start">
+                <div style="width:7px;height:7px;border-radius:50%;background:var(--color-blue);margin-top:5px;flex-shrink:0"></div>
+                <div style="flex:1">
+                  <div style="font-size:var(--text-sm);color:var(--color-text-primary)">项目 <span style="color:var(--color-accent)">PRJ-002</span> 新增里程碑节点</div>
+                  <div style="font-size:var(--text-xs);color:var(--color-text-quaternary);margin-top:2px">3小时前</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:var(--space-3);align-items:flex-start">
+                <div style="width:7px;height:7px;border-radius:50%;background:var(--color-yellow);margin-top:5px;flex-shrink:0"></div>
+                <div style="flex:1">
+                  <div style="font-size:var(--text-sm);color:var(--color-text-primary)">KPI评分更新：<strong>本月综合得分 87分</strong></div>
+                  <div style="font-size:var(--text-xs);color:var(--color-text-quaternary);margin-top:2px">今日 09:00</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div><!-- /grid-2 -->
+
+      <!-- KPI Progress -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📈 本月KPI进度</span>
+          <button class="btn btn-sm btn-secondary" onclick="showPage('performance')">查看绩效详情</button>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:var(--space-4)">
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:var(--space-2)">
+                <span style="font-size:var(--text-sm);color:var(--color-text-secondary)">任务完成率</span>
+                <span style="font-size:var(--text-sm);font-weight:600;font-family:var(--font-mono);color:var(--color-text-primary)">92%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill green" style="width:92%"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:var(--space-2)">
+                <span style="font-size:var(--text-sm);color:var(--color-text-secondary)">安全评审质量</span>
+                <span style="font-size:var(--text-sm);font-weight:600;font-family:var(--font-mono);color:var(--color-text-primary)">85%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill blue" style="width:85%"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:var(--space-2)">
+                <span style="font-size:var(--text-sm);color:var(--color-text-secondary)">专利输出目标</span>
+                <span style="font-size:var(--text-sm);font-weight:600;font-family:var(--font-mono);color:var(--color-text-primary)">60%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill yellow" style="width:60%"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:var(--space-2)">
+                <span style="font-size:var(--text-sm);color:var(--color-text-secondary)">技术分享贡献</span>
+                <span style="font-size:var(--text-sm);font-weight:600;font-family:var(--font-mono);color:var(--color-text-primary)">100%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill purple" style="width:100%"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /normalHomeBody -->
+
+    <!-- ===== AI HOME BODY ===== -->
+    <div id="aiHomeBody" style="display:none;flex:1">
+      <div class="ai-dashboard-shell" style="grid-template-columns:220px 1fr 400px;min-height:calc(100vh - 57px)">
+
+        <!-- AI LEFT PANEL -->
+        <div class="ai-left-panel">
+          <div style="padding:var(--space-4);border-bottom:1px solid var(--color-border-subtle)">
+            <div style="display:flex;align-items:center;gap:var(--space-2)">
+              <div class="ai-dot"></div>
+              <span style="font-size:var(--text-xs);font-weight:600;color:var(--color-text-primary)">AI 工作台</span>
+            </div>
+            <div style="font-size:var(--text-xs);color:var(--color-text-quaternary);margin-top:3px">实时分析 · 智能建议</div>
+          </div>
+
+          <!-- 详细信息 -->
+          <div class="ai-left-section">
+            <div class="ai-left-section-title">今日概览</div>
+            <div class="ai-summary-item"><span class="ai-summary-label">🔥 紧急任务</span><span class="ai-summary-val" style="color:var(--color-red)">3</span></div>
+            <div class="ai-summary-item"><span class="ai-summary-label">📋 进行中</span><span class="ai-summary-val">12</span></div>
+            <div class="ai-summary-item"><span class="ai-summary-label">✅ 今日完成</span><span class="ai-summary-val" style="color:var(--color-green)">5</span></div>
+            <div class="ai-summary-item"><span class="ai-summary-label">⏰ 即将到期</span><span class="ai-summary-val" style="color:var(--color-yellow)">2</span></div>
+          </div>
+
+          <!-- 看板状态 -->
+          <div class="ai-left-section">
+            <div class="ai-left-section-title">看板状态</div>
+            <div class="ai-summary-item"><span class="ai-summary-label">待办</span><span class="ai-summary-val">8</span></div>
+            <div class="ai-summary-item"><span class="ai-summary-label">进行中</span><span class="ai-summary-val">12</span></div>
+            <div class="ai-summary-item"><span class="ai-summary-label">评审中</span><span class="ai-summary-val">4</span></div>
+            <div class="ai-summary-item"><span class="ai-summary-label">已完成</span><span class="ai-summary-val" style="color:var(--color-green)">23</span></div>
+          </div>
+
+          <!-- KPI快照 -->
+          <div class="ai-left-section">
+            <div class="ai-left-section-title">KPI 快照</div>
+            <div class="ai-summary-item"><span class="ai-summary-label">综合得分</span><span class="ai-summary-val" style="color:var(--color-accent)">87</span></div>
+            <div class="ai-summary-item"><span class="ai-summary-label">任务完成</span><span class="ai-summary-val">92%</span></div>
+            <div class="ai-summary-item"><span class="ai-summary-label">安全评审</span><span class="ai-summary-val">85%</span></div>
+            <div class="ai-summary-item"><span class="ai-summary-label">专利输出</span><span class="ai-summary-val" style="color:var(--color-yellow)">60%</span></div>
+          </div>
+
+          <!-- 项目概览 -->
+          <div class="ai-left-section">
+            <div class="ai-left-section-title">项目概览</div>
+            <div class="ai-summary-item"><span class="ai-summary-label">活跃项目</span><span class="ai-summary-val">5</span></div>
+            <div class="ai-summary-item"><span class="ai-summary-label">本月交付</span><span class="ai-summary-val" style="color:var(--color-green)">2</span></div>
+            <div class="ai-summary-item"><span class="ai-summary-label">风险项</span><span class="ai-summary-val" style="color:var(--color-red)">1</span></div>
+          </div>
+
+          <!-- AI总结 -->
+          <div class="ai-left-section" style="border-bottom:none">
+            <div class="ai-left-section-title">AI 总结</div>
+            <div style="padding:var(--space-3);background:var(--color-accent-subtle);border:1px solid var(--color-accent-border);border-radius:var(--radius-md);margin-top:var(--space-2)">
+              <div style="font-size:var(--text-xs);color:var(--color-text-secondary);line-height:1.6">
+                本周工作整体进展良好，安全评审需重点关注，建议优先处理 <strong style="color:var(--color-text-primary)">TSK-019</strong>，KPI距目标还差 <strong style="color:var(--color-accent-hover)">13%</strong>。
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI MAIN PANEL -->
+        <div class="ai-main-panel">
+          <!-- Greeting Block -->
+          <div class="ai-greeting-block">
+            <div class="ai-greeting-header">
+              <div class="ai-avatar-ring">
+                ✦
+                <div class="ai-pulse"></div>
+              </div>
+              <div>
+                <div class="ai-greeting-name">早上好，张工 👋</div>
+                <div class="ai-greeting-sub">今天是 2025年7月14日 · 星期一</div>
+              </div>
+              <div class="ai-active-indicator" style="margin-left:auto">
+                <div class="ai-dot"></div>
+                <span>AI 已就绪</span>
+              </div>
+            </div>
+            <div class="ai-greeting-text" id="aiGreetingText">
+              <!-- JS will type this in -->
+            </div>
+          </div>
+
+          <!-- AI 自动生成的任务卡片 -->
+          <div>
+            <div class="section-header">
+              <div class="section-title">✦ AI 智能任务建议</div>
+              <span class="tag tag-purple" style="font-size:10px">自动生成</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:var(--space-4)">
+              <div class="ai-info-card" style="border-color:var(--color-red-subtle)">
+                <div class="ai-info-card-header">
+                  <div class="ai-info-card-icon" style="background:var(--color-red-subtle)">🔥</div>
+                  <div>
+                    <div class="ai-info-card-title">紧急处理</div>
+                    <div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">今日必完成</div>
+                  </div>
+                </div>
+                <div style="font-size:var(--text-xs);color:var(--color-text-secondary);line-height:1.6">热失控仿真模型验证 (TSK-019) 截止日期为<strong style="color:var(--color-red)"> 明日</strong>，当前完成度 65%，需加速推进。</div>
+                <div style="margin-top:var(--space-3)">
+                  <div class="progress-bar"><div class="progress-fill red" style="width:65%"></div></div>
+                  <div style="display:flex;justify-content:space-between;margin-top:4px">
+                    <span style="font-size:10px;color:var(--color-text-quaternary)">65% 完成</span>
+                    <span style="font-size:10px;color:var(--color-red)">剩余1天</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ai-info-card" style="border-color:var(--color-yellow-subtle)">
+                <div class="ai-info-card-header">
+                  <div class="ai-info-card-icon" style="background:var(--color-yellow-subtle)">⚡</div>
+                  <div>
+                    <div class="ai-info-card-title">KPI 预警</div>
+                    <div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">本月第3周</div>
+                  </div>
+                </div>
+                <div style="font-size:var(--text-xs);color:var(--color-text-secondary);line-height:1.6">专利输出目标仅完成 60%，距月底还有 <strong style="color:var(--color-yellow)">17天</strong>，建议本周启动第3篇交底书撰写。</div>
+                <div style="margin-top:var(--space-3)">
+                  <div class="progress-bar"><div class="progress-fill yellow" style="width:60%"></div></div>
+                  <div style="display:flex;justify-content:space-between;margin-top:4px">
+                    <span style="font-size:10px;color:var(--color-text-quaternary)">目标: 5篇</span>
+                    <span style="font-size:10px;color:var(--color-yellow)">已完成: 3篇</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ai-info-card" style="border-color:var(--color-accent-border)">
+                <div class="ai-info-card-header">
+                  <div class="ai-info-card-icon" style="background:var(--color-accent-subtle)">🎯</div>
+                  <div>
+                    <div class="ai-info-card-title">本周目标</div>
+                    <div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">AI 规划</div>
+                  </div>
+                </div>
+                <div style="font-size:var(--text-xs);color:var(--color-text-secondary);line-height:1.6">根据历史数据，本周完成 <strong style="color:var(--color-text-primary)">4个任务</strong> 可使 KPI 提升至 <strong style="color:var(--color-accent-hover)">92分</strong>，达成优秀评级。</div>
+                <div style="margin-top:var(--space-3);display:flex;gap:4px;flex-wrap:wrap">
+                  <span class="tag tag-blue" style="font-size:10px">SR-001完成</span>
+                  <span class="tag tag-purple" style="font-size:10px">专利撰写</span>
+                  <span class="tag tag-green" style="font-size:10px">BMS迭代</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI 生成项目状态 -->
+          <div>
+            <div class="section-header">
+              <div class="section-title">📊 AI 项目状态分析</div>
+              <span class="tag tag-green" style="font-size:10px">实时更新</span>
+            </div>
+            <div class="card">
+              <div style="overflow-x:auto">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>项目</th>
+                      <th>进度</th>
+                      <th>状态</th>
+                      <th>AI风险评估</th>
+                      <th>预测完成</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><div style="font-weight:500;color:var(--color-text-primary)">新型高压拓扑研究</div><div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">PRJ-001</div></td>
+                      <td style="width:160px"><div class="progress-bar"><div class="progress-fill blue" style="width:78%"></div></div><span style="font-size:10px;color:var(--color-text-tertiary)">78%</span></td>
+                      <td><span class="tag tag-blue">进行中</span></td>
+                      <td><span class="tag tag-green">低风险</span></td>
+                      <td style="font-size:var(--text-xs);font-family:var(--font-mono)">2025-09-30</td>
+                    </tr>
+                    <tr>
+                      <td><div style="font-weight:500;color:var(--color-text-primary)">BMS热管理优化</div><div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">PRJ-002</div></td>
+                      <td style="width:160px"><div class="progress-bar"><div class="progress-fill yellow" style="width:45%"></div></div><span style="font-size:10px;color:var(--color-text-tertiary)">45%</span></td>
+                      <td><span class="tag tag-yellow">风险</span></td>
+                      <td><span class="tag tag-red">高风险 ⚠</span></td>
+                      <td style="font-size:var(--text-xs);font-family:var(--font-mono);color:var(--color-red)">延期预测</td>
+                    </tr>
+                    <tr>
+                      <td><div style="font-weight:500;color:var(--color-text-primary)">电芯一致性分析</div><div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">PRJ-003</div></td>
+                      <td style="width:160px"><div class="progress-bar"><div class="progress-fill green" style="width:92%"></div></div><span style="font-size:10px;color:var(--color-text-tertiary)">92%</span></td>
+                      <td><span class="tag tag-blue">近完成</span></td>
+                      <td><span class="tag tag-green">低风险</span></td>
+                      <td style="font-size:var(--text-xs);font-family:var(--font-mono)">2025-07-25</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI 生成 KPI 可视化 -->
+          <div>
+            <div class="section-header">
+              <div class="section-title">🏆 AI KPI 智能分析</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+              <div class="card">
+                <div class="card-header"><span class="card-title">月度KPI得分趋势</span></div>
+                <div class="card-body">
+                  <div style="display:flex;align-items:flex-end;gap:6px;height:100px">
+                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+                      <div style="flex:1;width:100%;display:flex;align-items:flex-end">
+                        <div style="width:100%;height:72%;background:linear-gradient(180deg,var(--color-blue),rgba(59,130,246,0.4));border-radius:4px 4px 0 0"></div>
+                      </div>
+                      <span style="font-size:9px;color:var(--color-text-quaternary)">4月</span>
+                    </div>
+                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+                      <div style="flex:1;width:100%;display:flex;align-items:flex-end">
+                        <div style="width:100%;height:80%;background:linear-gradient(180deg,var(--color-blue),rgba(59,130,246,0.4));border-radius:4px 4px 0 0"></div>
+                      </div>
+                      <span style="font-size:9px;color:var(--color-text-quaternary)">5月</span>
+                    </div>
+                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+                      <div style="flex:1;width:100%;display:flex;align-items:flex-end">
+                        <div style="width:100%;height:76%;background:linear-gradient(180deg,var(--color-blue),rgba(59,130,246,0.4));border-radius:4px 4px 0 0"></div>
+                      </div>
+                      <span style="font-size:9px;color:var(--color-text-quaternary)">6月</span>
+                    </div>
+                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+                      <div style="flex:1;width:100%;display:flex;align-items:flex-end">
+                        <div style="width:100%;height:87%;background:linear-gradient(180deg,var(--color-accent),rgba(99,102,241,0.4));border-radius:4px 4px 0 0;box-shadow:0 0 12px rgba(99,102,241,0.4)"></div>
+                      </div>
+                      <span style="font-size:9px;color:var(--color-accent)">7月</span>
+                    </div>
+                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+                      <div style="flex:1;width:100%;display:flex;align-items:flex-end">
+                        <div style="width:100%;height:55%;background:var(--color-bg-hover);border-radius:4px 4px 0 0;border:1px dashed var(--color-border-strong)"></div>
+                      </div>
+                      <span style="font-size:9px;color:var(--color-text-quaternary)">8月↗</span>
+                    </div>
+                  </div>
+                  <div style="margin-top:var(--space-3);display:flex;justify-content:space-between;align-items:center">
+                    <span style="font-size:var(--text-xs);color:var(--color-text-tertiary)">AI预测8月: 90+</span>
+                    <span style="font-size:var(--text-xs);font-weight:600;color:var(--color-green)">↑ 持续上升</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header"><span class="card-title">AI 建议行动</span></div>
+                <div class="card-body" style="display:flex;flex-direction:column;gap:var(--space-3)">
+                  <div style="display:flex;gap:var(--space-3);align-items:flex-start">
+                    <div style="width:24px;height:24px;border-radius:50%;background:var(--color-red-subtle);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">1</div>
+                    <div style="font-size:var(--text-xs);color:var(--color-text-secondary);line-height:1.6">优先完成 <strong style="color:var(--color-text-primary)">TSK-019</strong> 热失控验证，解除安全评审阻塞</div>
+                  </div>
+                  <div style="display:flex;gap:var(--space-3);align-items:flex-start">
+                    <div style="width:24px;height:24px;border-radius:50%;background:var(--color-yellow-subtle);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">2</div>
+                    <div style="font-size:var(--text-xs);color:var(--color-text-secondary);line-height:1.6">本周安排1次专利研讨，推进 <strong style="color:var(--color-text-primary)">3篇</strong> 交底书至提交状态</div>
+                  </div>
+                  <div style="display:flex;gap:var(--space-3);align-items:flex-start">
+                    <div style="width:24px;height:24px;border-radius:50%;background:var(--color-accent-subtle);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">3</div>
+                    <div style="font-size:var(--text-xs);color:var(--color-text-secondary);line-height:1.6">跟进 <strong style="color:var(--color-text-primary)">PRJ-002</strong> BMS热管理风险，联系李工确认仿真数据</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div><!-- /ai-main-panel -->
+
+        <!-- AI CHAT PANEL -->
+        <div class="ai-chat-panel">
+          <div class="ai-chat-header">
+            <div>
+              <div class="ai-chat-title">✦ AI 助手对话</div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">基于你的工作上下文</div>
+            </div>
+            <button class="btn btn-sm btn-secondary">清空</button>
+          </div>
+
+          <!-- Messages -->
+          <div class="ai-chat-messages" id="chatMessages">
+            <div class="chat-msg">
+              <div class="chat-msg-avatar">AI</div>
+              <div class="chat-bubble">
+                <p>你好，张工！👋 我已分析你的今日工作状态。</p>
+                <p>当前有 <strong>3个紧急任务</strong> 需要关注，其中 TSK-019 热失控仿真验证最为紧急，截止明日，完成度仅 65%。</p>
+                <p>需要我帮你制定今日工作计划吗？</p>
+              </div>
+            </div>
+            <div class="chat-msg user">
+              <div class="chat-msg-avatar user-av">ZG</div>
+              <div class="chat-bubble">帮我分析一下 TSK-019 的风险</div>
+            </div>
+            <div class="chat-msg">
+              <div class="chat-msg-avatar">AI</div>
+              <div class="chat-bubble">
+                <p><strong>TSK-019 风险分析：</strong></p>
+                <p>🔴 <strong>时间风险</strong>：剩余工期1天，当前进度65%，需在今日完成35%工作量</p>
+                <p>🟡 <strong>技术风险</strong>：热失控仿真涉及多物理场耦合，建议提前准备备选方案</p>
+                <p>🟢 <strong>资源风险</strong>：团队无冲突，可申请李工协助数据处理</p>
+                <p>建议：立即启动，优先完成核心仿真模型，文档整理可延后。</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Commands -->
+          <div class="ai-quick-cmds">
+            <div class="ai-quick-label">快捷指令</div>
+            <div class="ai-quick-chips">
+              <div class="ai-quick-chip" onclick="sendQuickMsg(this)">📋 今日工作计划</div>
+              <div class="ai-quick-chip" onclick="sendQuickMsg(this)">🎯 KPI提升建议</div>
+              <div class="ai-quick-chip" onclick="sendQuickMsg(this)">⚠️ 风险任务列表</div>
+              <div class="ai-quick-chip" onclick="sendQuickMsg(this)">📊 项目进度汇报</div>
+              <div class="ai-quick-chip" onclick="sendQuickMsg(this)">🔍 安全评审状态</div>
+              <div class="ai-quick-chip" onclick="sendQuickMsg(this)">📝 周报草稿生成</div>
+              <div class="ai-quick-chip" onclick="sendQuickMsg(this)">💡 专利方向建议</div>
+              <div class="ai-quick-chip" onclick="sendQuickMsg(this)">📅 本周排期优化</div>
+            </div>
+          </div>
+
+          <!-- Input -->
+          <div class="ai-chat-input-area">
+            <div class="ai-input-box">
+              <textarea class="ai-input-field" id="chatInput" rows="1" placeholder="向 AI 助手提问，或使用上方快捷指令…" onkeydown="handleChatKey(event)"></textarea>
+              <div class="ai-send-btn" onclick="sendChat()">
+                <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </div>
+            </div>
+            <div style="margin-top:var(--space-2);font-size:10px;color:var(--color-text-quaternary);text-align:center">AI 基于你的工作数据生成回复 · Enter 发送</div>
+          </div>
+        </div><!-- /ai-chat-panel -->
+      </div><!-- /ai-dashboard-shell -->
+    </div><!-- /aiHomeBody -->
+  </div><!-- /content-area -->
+</div><!-- /app-shell -->
+</div><!-- /page-home -->
+
+<!-- ============================================================
+     PAGE 2: SECURITY REVIEW BOARD (安全评审看板)
+     ============================================================ -->
+<div class="page-section" id="page-security">
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">B</div>
+      <div><div class="sidebar-title">BST Platform</div></div>
+      <span class="sidebar-version">v2.0</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">工作台</div>
+      <div class="nav-item" onclick="showPage('home')">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+        工作台首页
+      </div>
+      <div class="nav-item active">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+        安全评审看板
+      </div>
+      <div class="nav-item" onclick="showPage('projects')">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+        项目视图
+      </div>
+      <div class="nav-item" onclick="showPage('performance')">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
+        月度绩效
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar">ZG</div>
+        <div><div class="user-name">张工</div><div class="user-role">高级研发工程师</div></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="content-area">
+    <div class="page-header">
+      <div class="page-header-top">
+        <div>
+          <div class="page-title">安全评审看板</div>
+          <div class="page-subtitle">SFMEA · DFMEA · 安全分析 · 多视图管理</div>
+        </div>
+        <div class="btn-group">
+          <!-- 视图切换 -->
+          <div class="view-switcher" id="securityViewSwitcher">
+            <div class="view-switcher-btn active" onclick="switchSecurityView('list',this)">
+              <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+              列表视图
+            </div>
+            <div class="view-switcher-btn" onclick="switchSecurityView('kanban',this)">
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+              看板视图
+            </div>
+            <div class="view-switcher-btn" onclick="switchSecurityView('gantt',this)">
+              <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+              甘特图
+            </div>
+          </div>
+          <button class="btn btn-secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            导出
+          </button>
+          <button class="btn btn-primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            新建评审
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="content-body">
+      <!-- Stats Row -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">评审总数</div>
+          <div class="stat-value">18</div>
+          <div class="stat-change neutral">本年度</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">进行中</div>
+          <div class="stat-value">4</div>
+          <div class="stat-change up">↑ 1 本月新增</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">待处理问题</div>
+          <div class="stat-value">7</div>
+          <div class="stat-change down">↓ 2 已关闭</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">已通过率</div>
+          <div class="stat-value">78<span style="font-size:var(--text-xl);color:var(--color-text-tertiary)">%</span></div>
+          <div class="stat-change up">↑ 3% 环比</div>
+        </div>
+      </div>
+
+      <!-- ===== LIST VIEW ===== -->
+      <div id="securityListView" class="view-panel active">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">评审清单</span>
+            <div style="display:flex;gap:var(--space-2)">
+              <input type="text" placeholder="搜索评审..." style="padding:5px 10px;border-radius:var(--radius-md);border:1px solid var(--color-border);background:var(--color-bg-subtle);color:var(--color-text-primary);font-size:var(--text-xs);outline:none;width:180px">
+              <button class="btn btn-sm btn-secondary">筛选</button>
+            </div>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>评审ID</th>
+                  <th>评审名称</th>
+                  <th>类型</th>
+                  <th>负责人</th>
+                  <th>优先级</th>
+                  <th>进度</th>
+                  <th>状态</th>
+                  <th>截止日期</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="font-family:var(--font-mono);font-size:var(--text-xs);color:var(--color-text-quaternary)">SR-001</td>
+                  <td><div style="font-weight:500;color:var(--color-text-primary)">高压拓扑安全评审</div><div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">含NUDD分析·风险矩阵</div></td>
+                  <td><span class="tag tag-purple">SFMEA</span></td>
+                  <td>张工</td>
+                  <td><div style="display:flex;align-items:center;gap:5px"><div class="priority-dot high"></div><span class="tag tag-red">紧急</span></div></td>
+                  <td style="width:140px"><div class="progress-bar"><div class="progress-fill blue" style="width:60%"></div></div><span style="font-size:10px;color:var(--color-text-quaternary)">60%</span></td>
+                  <td><span class="tag tag-orange">评审中</span></td>
+                  <td style="font-family:var(--font-mono);font-size:var(--text-xs)">2025-07-20</td>
+                  <td><button class="btn btn-sm btn-ghost">详情</button></td>
+                </tr>
+                <tr>
+                  <td style="font-family:var(--font-mono);font-size:var(--text-xs);color:var(--color-text-quaternary)">SR-002</td>
+                  <td><div style="font-weight:500;color:var(--color-text-primary)">BMS算法安全性分析</div><div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">功能安全·ISO 26262</div></td>
+                  <td><span class="tag tag-blue">DFMEA</span></td>
+                  <td>李工</td>
+                  <td><div style="display:flex;align-items:center;gap:5px"><div class="priority-dot medium"></div><span class="tag tag-yellow">高</span></div></td>
+                  <td style="width:140px"><div class="progress-bar"><div class="progress-fill yellow" style="width:35%"></div></div><span style="font-size:10px;color:var(--color-text-quaternary)">35%</span></td>
+                  <td><span class="tag tag-blue">准备中</span></td>
+                  <td style="font-family:var(--font-mono);font-size:var(--text-xs)">2025-08-05</td>
+                  <td><button class="btn btn-sm btn-ghost">详情</button></td>
+                </tr>
+                <tr>
+                  <td style="font-family:var(--font-mono);font-size:var(--text-xs);color:var(--color-text-quaternary)">SR-003</td>
+                  <td><div style="font-weight:500;color:var(--color-text-primary)">热失控防护系统评审</div><div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">仿真验证·试验数据</div></td>
+                  <td><span class="tag tag-orange">HAZOP</span></td>
+                  <td>王工</td>
+                  <td><div style="display:flex;align-items:center;gap:5px"><div class="priority-dot high"></div><span class="tag tag-red">紧急</span></div></td>
+                  <td style="width:140px"><div class="progress-bar"><div class="progress-fill red" style="width:80%"></div></div><span style="font-size:10px;color:var(--color-text-quaternary)">80%</span></td>
+                  <td><span class="tag tag-orange">评审中</span></td>
+                  <td style="font-family:var(--font-mono);font-size:var(--text-xs)">2025-07-18</td>
+                  <td><button class="btn btn-sm btn-ghost">详情</button></td>
+                </tr>
+                <tr>
+                  <td style="font-family:var(--font-mono);font-size:var(--text-xs);color:var(--color-text-quaternary)">SR-004</td>
+                  <td><div style="font-weight:500;color:var(--color-text-primary)">电芯供应商变更评估</div><div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">供应链安全·认证</div></td>
+                  <td><span class="tag tag-green">变更评审</span></td>
+                  <td>赵工</td>
+                  <td><div style="display:flex;align-items:center;gap:5px"><div class="priority-dot low"></div><span class="tag tag-neutral">普通</span></div></td>
+                  <td style="width:140px"><div class="progress-bar"><div class="progress-fill green" style="width:100%"></div></div><span style="font-size:10px;color:var(--color-text-quaternary)">100%</span></td>
+                  <td><span class="tag tag-green">已通过</span></td>
+                  <td style="font-family:var(--font-mono);font-size:var(--text-xs)">2025-06-30</td>
+                  <td><button class="btn btn-sm btn-ghost">详情</button></td>
+                </tr>
+                <tr>
+                  <td style="font-family:var(--font-mono);font-size:var(--text-xs);color:var(--color-text-quaternary)">SR-005</td>
+                  <td><div style="font-weight:500;color:var(--color-text-primary)">充放电保护策略评审</div><div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">过流·过压·过温</div></td>
+                  <td><span class="tag tag-blue">DFMEA</span></td>
+                  <td>张工</td>
+                  <td><div style="display:flex;align-items:center;gap:5px"><div class="priority-dot medium"></div><span class="tag tag-yellow">高</span></div></td>
+                  <td style="width:140px"><div class="progress-bar"><div class="progress-fill blue" style="width:20%"></div></div><span style="font-size:10px;color:var(--color-text-quaternary)">20%</span></td>
+                  <td><span class="tag tag-neutral">待启动</span></td>
+                  <td style="font-family:var(--font-mono);font-size:var(--text-xs)">2025-08-30</td>
+                  <td><button class="btn btn-sm btn-ghost">详情</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== KANBAN VIEW ===== -->
+      <div id="securityKanbanView" class="view-panel">
+        <div class="kanban-board" style="grid-template-columns:repeat(4,1fr)">
+          <!-- 待启动 -->
+          <div class="kanban-column">
+            <div class="kanban-column-header">
+              <span class="kanban-column-title">⏳ 待启动</span>
+              <span class="kanban-column-count">2</span>
+            </div>
+            <div class="kanban-card">
+              <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2)">
+                <span class="tag tag-blue" style="font-size:10px">DFMEA</span>
+                <div class="priority-dot medium"></div>
+              </div>
+              <div class="kanban-card-title">充放电保护策略评审</div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">SR-005</div>
+              <div class="kanban-card-meta">
+                <span class="tag tag-neutral" style="font-size:10px">张工</span>
+                <span style="font-size:10px;color:var(--color-text-quaternary)">08-30</span>
+              </div>
+            </div>
+            <div class="kanban-card">
+              <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2)">
+                <span class="tag tag-orange" style="font-size:10px">HAZOP</span>
+                <div class="priority-dot low"></div>
+              </div>
+              <div class="kanban-card-title">连接器绝缘安全分析</div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">SR-006</div>
+              <div class="kanban-card-meta">
+                <span class="tag tag-neutral" style="font-size:10px">刘工</span>
+                <span style="font-size:10px;color:var(--color-text-quaternary)">09-15</span>
+              </div>
+            </div>
+          </div>
+          <!-- 准备中 -->
+          <div class="kanban-column">
+            <div class="kanban-column-header">
+              <span class="kanban-column-title">📋 准备中</span>
+              <span class="kanban-column-count">1</span>
+            </div>
+            <div class="kanban-card" style="border-color:var(--color-yellow-subtle)">
+              <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2)">
+                <span class="tag tag-blue" style="font-size:10px">DFMEA</span>
+                <div class="priority-dot medium"></div>
+              </div>
+              <div class="kanban-card-title">BMS算法安全性分析</div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">SR-002</div>
+              <div style="margin-top:var(--space-2)">
+                <div class="progress-bar"><div class="progress-fill yellow" style="width:35%"></div></div>
+                <span style="font-size:10px;color:var(--color-text-quaternary)">35%</span>
+              </div>
+              <div class="kanban-card-meta">
+                <span class="tag tag-neutral" style="font-size:10px">李工</span>
+                <span style="font-size:10px;color:var(--color-text-quaternary)">08-05</span>
+              </div>
+            </div>
+          </div>
+          <!-- 评审中 -->
+          <div class="kanban-column" style="border-color:var(--color-accent-border)">
+            <div class="kanban-column-header">
+              <span class="kanban-column-title">🔍 评审中</span>
+              <span class="kanban-column-count">2</span>
+            </div>
+            <div class="kanban-card" style="border-color:var(--color-red-subtle)">
+              <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2)">
+                <span class="tag tag-purple" style="font-size:10px">SFMEA</span>
+                <div class="priority-dot high"></div>
+              </div>
+              <div class="kanban-card-title">高压拓扑安全评审</div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">SR-001</div>
+              <div style="margin-top:var(--space-2)">
+                <div class="progress-bar"><div class="progress-fill blue" style="width:60%"></div></div>
+                <span style="font-size:10px;color:var(--color-text-quaternary)">60%</span>
+              </div>
+              <div class="kanban-card-meta">
+                <span class="tag tag-neutral" style="font-size:10px">张工</span>
+                <span style="font-size:10px;color:var(--color-red)">07-20 ⚠</span>
+              </div>
+            </div>
+            <div class="kanban-card" style="border-color:var(--color-red-subtle)">
+              <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2)">
+                <span class="tag tag-orange" style="font-size:10px">HAZOP</span>
+                <div class="priority-dot high"></div>
+              </div>
+              <div class="kanban-card-title">热失控防护系统评审</div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">SR-003</div>
+              <div style="margin-top:var(--space-2)">
+                <div class="progress-bar"><div class="progress-fill red" style="width:80%"></div></div>
+                <span style="font-size:10px;color:var(--color-text-quaternary)">80%</span>
+              </div>
+              <div class="kanban-card-meta">
+                <span class="tag tag-neutral" style="font-size:10px">王工</span>
+                <span style="font-size:10px;color:var(--color-red)">07-18 ⚠</span>
+              </div>
+            </div>
+          </div>
+          <!-- 已通过 -->
+          <div class="kanban-column">
+            <div class="kanban-column-header">
+              <span class="kanban-column-title">✅ 已通过</span>
+              <span class="kanban-column-count">3</span>
+            </div>
+            <div class="kanban-card">
+              <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2)">
+                <span class="tag tag-green" style="font-size:10px">变更评审</span>
+              </div>
+              <div class="kanban-card-title">电芯供应商变更评估</div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">SR-004</div>
+              <div class="kanban-card-meta">
+                <span class="tag tag-neutral" style="font-size:10px">赵工</span>
+                <span style="font-size:10px;color:var(--color-green)">已完成</span>
+              </div>
+            </div>
+            <div class="kanban-card">
+              <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-2)">
+                <span class="tag tag-blue" style="font-size:10px">DFMEA</span>
+              </div>
+              <div class="kanban-card-title">低压辅助电源安全评审</div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">SR-007</div>
+              <div class="kanban-card-meta">
+                <span class="tag tag-neutral" style="font-size:10px">张工</span>
+                <span style="font-size:10px;color:var(--color-green)">已完成</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== GANTT VIEW ===== -->
+      <div id="securityGanttView" class="view-panel">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">甘特图视图 — 2025年7月 ~ 9月</span>
+            <div style="display:flex;gap:var(--space-3);align-items:center">
+              <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;border-radius:2px;background:var(--color-blue)"></div><span style="font-size:var(--text-xs);color:var(--color-text-tertiary)">进行中</span></div>
+              <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;border-radius:2px;background:var(--color-green)"></div><span style="font-size:var(--text-xs);color:var(--color-text-tertiary)">已完成</span></div>
+              <div style="display:flex;align-items:center;gap:5px"><div style="width:12px;height:12px;border-radius:2px;background:var(--color-red)"></div><span style="font-size:var(--text-xs);color:var(--color-text-tertiary)">紧急</span></div>
+            </div>
+          </div>
+          <div class="gantt-container" style="padding:var(--space-4)">
+            <!-- Month Headers -->
+            <div style="display:flex;margin-left:260px;margin-bottom:4px">
+              <div style="flex:1;text-align:center;font-size:var(--text-xs);color:var(--color-text-quaternary);font-weight:600;border-right:1px solid var(--color-border-subtle);padding:4px">7月</div>
+              <div style="flex:1;text-align:center;font-size:var(--text-xs);color:var(--color-text-quaternary);font-weight:600;border-right:1px solid var(--color-border-subtle);padding:4px">8月</div>
+              <div style="flex:1;text-align:center;font-size:var(--text-xs);color:var(--color-text-quaternary);font-weight:600;padding:4px">9月</div>
+            </div>
+            <!-- Gantt Rows -->
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <!-- SR-001 -->
+              <div style="display:flex;align-items:center;gap:0">
+                <div style="width:260px;flex-shrink:0;display:flex;align-items:center;gap:var(--space-2);padding-right:var(--space-3)">
+                  <div class="priority-dot high"></div>
+                  <div>
+                    <div style="font-size:var(--text-xs);font-weight:500;color:var(--color-text-primary)">SR-001 高压拓扑安全评审</div>
+                    <div style="font-size:10px;color:var(--color-text-quaternary)">张工 · SFMEA</div>
+                  </div>
+                </div>
+                <div style="flex:1;position:relative;height:28px;background:var(--color-bg-hover);border-radius:var(--radius-sm)">
+                  <div style="position:absolute;left:2%;top:4px;width:55%;height:20px;background:linear-gradient(90deg,#EF4444,#F87171);border-radius:var(--radius-sm);display:flex;align-items:center;padding:0 8px">
+                    <span style="font-size:10px;font-weight:600;color:white;white-space:nowrap">60% · 07/01–07/20</span>
+                  </div>
+                </div>
+              </div>
+              <!-- SR-002 -->
+              <div style="display:flex;align-items:center;gap:0">
+                <div style="width:260px;flex-shrink:0;display:flex;align-items:center;gap:var(--space-2);padding-right:var(--space-3)">
+                  <div class="priority-dot medium"></div>
+                  <div>
+                    <div style="font-size:var(--text-xs);font-weight:500;color:var(--color-text-primary)">SR-002 BMS算法安全性分析</div>
+                    <div style="font-size:10px;color:var(--color-text-quaternary)">李工 · DFMEA</div>
+                  </div>
+                </div>
+                <div style="flex:1;position:relative;height:28px;background:var(--color-bg-hover);border-radius:var(--radius-sm)">
+                  <div style="position:absolute;left:20%;top:4px;width:52%;height:20px;background:linear-gradient(90deg,#3B82F6,#60A5FA);border-radius:var(--radius-sm);display:flex;align-items:center;padding:0 8px">
+                    <span style="font-size:10px;font-weight:600;color:white;white-space:nowrap">35% · 07/15–08/05</span>
+                  </div>
+                </div>
+              </div>
+              <!-- SR-003 -->
+              <div style="display:flex;align-items:center;gap:0">
+                <div style="width:260px;flex-shrink:0;display:flex;align-items:center;gap:var(--space-2);padding-right:var(--space-3)">
+                  <div class="priority-dot high"></div>
+                  <div>
+                    <div style="font-size:var(--text-xs);font-weight:500;color:var(--color-text-primary)">SR-003 热失控防护系统评审</div>
+                    <div style="font-size:10px;color:var(--color-text-quaternary)">王工 · HAZOP</div>
+                  </div>
+                </div>
+                <div style="flex:1;position:relative;height:28px;background:var(--color-bg-hover);border-radius:var(--radius-sm)">
+                  <div style="position:absolute;left:0%;top:4px;width:48%;height:20px;background:linear-gradient(90deg,#F97316,#FB923C);border-radius:var(--radius-sm);display:flex;align-items:center;padding:0 8px">
+                    <span style="font-size:10px;font-weight:600;color:white;white-space:nowrap">80% · 07/01–07/18</span>
+                  </div>
+                </div>
+              </div>
+              <!-- SR-004 -->
+              <div style="display:flex;align-items:center;gap:0">
+                <div style="width:260px;flex-shrink:0;display:flex;align-items:center;gap:var(--space-2);padding-right:var(--space-3)">
+                  <div class="priority-dot low"></div>
+                  <div>
+                    <div style="font-size:var(--text-xs);font-weight:500;color:var(--color-text-primary)">SR-004 电芯供应商变更评估</div>
+                    <div style="font-size:10px;color:var(--color-text-quaternary)">赵工 · 变更评审</div>
+                  </div>
+                </div>
+                <div style="flex:1;position:relative;height:28px;background:var(--color-bg-hover);border-radius:var(--radius-sm)">
+                  <div style="position:absolute;left:0%;top:4px;width:33%;height:20px;background:linear-gradient(90deg,#22C55E,#4ADE80);border-radius:var(--radius-sm);display:flex;align-items:center;padding:0 8px">
+                    <span style="font-size:10px;font-weight:600;color:white;white-space:nowrap">✓ 已完成</span>
+                  </div>
+                </div>
+              </div>
+              <!-- SR-005 -->
+              <div style="display:flex;align-items:center;gap:0">
+                <div style="width:260px;flex-shrink:0;display:flex;align-items:center;gap:var(--space-2);padding-right:var(--space-3)">
+                  <div class="priority-dot medium"></div>
+                  <div>
+                    <div style="font-size:var(--text-xs);font-weight:500;color:var(--color-text-primary)">SR-005 充放电保护策略评审</div>
+                    <div style="font-size:10px;color:var(--color-text-quaternary)">张工 · DFMEA</div>
+                  </div>
+                </div>
+                <div style="flex:1;position:relative;height:28px;background:var(--color-bg-hover);border-radius:var(--radius-sm)">
+                  <div style="position:absolute;left:55%;top:4px;width:45%;height:20px;background:linear-gradient(90deg,#6366F1,#818CF8);border-radius:var(--radius-sm);display:flex;align-items:center;padding:0 8px;border:1px dashed rgba(255,255,255,0.3)">
+                    <span style="font-size:10px;font-weight:600;color:white;white-space:nowrap">待启动 · 08/01–08/30</span>
+                  </div>
+                </div>
+              </div>
+              <!-- Today line -->
+              <div style="position:relative;height:0;margin-left:260px">
+                <div style="position:absolute;left:16%;top:-156px;width:2px;height:168px;background:var(--color-accent);opacity:0.6;border-radius:1px">
+                  <div style="position:absolute;top:0;left:50%;transform:translateX(-50%);background:var(--color-accent);color:white;font-size:9px;padding:1px 4px;border-radius:2px;white-space:nowrap">今日</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div><!-- /securityGanttView -->
+
+    </div><!-- /content-body -->
+  </div><!-- /content-area -->
+</div><!-- /app-shell -->
+</div><!-- /page-security -->
+
+<!-- ============================================================
+     PAGE 3: PROJECT VIEW (项目视图 — 5种模式)
+     ============================================================ -->
+<div class="page-section" id="page-projects">
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">B</div>
+      <div><div class="sidebar-title">BST Platform</div></div>
+      <span class="sidebar-version">v2.0</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">工作台</div>
+      <div class="nav-item" onclick="showPage('home')">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+        工作台首页
+      </div>
+      <div class="nav-item" onclick="showPage('security')">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+        安全评审看板
+      </div>
+      <div class="nav-item active">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+        项目视图
+      </div>
+      <div class="nav-item" onclick="showPage('performance')">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
+        月度绩效
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar">ZG</div>
+        <div><div class="user-name">张工</div><div class="user-role">高级研发工程师</div></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="content-area">
+    <div class="page-header">
+      <div class="page-header-top">
+        <div>
+          <div class="page-title">项目视图</div>
+          <div class="page-subtitle">列表 · 看板 · 甘特 · WBS · 数据统计 五视图管理</div>
+        </div>
+        <div class="btn-group">
+          <div class="view-switcher" id="projectViewSwitcher">
+            <div class="view-switcher-btn active" onclick="switchProjectView('list',this)">
+              <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/></svg>
+              列表
+            </div>
+            <div class="view-switcher-btn" onclick="switchProjectView('kanban',this)">
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+              看板
+            </div>
+            <div class="view-switcher-btn" onclick="switchProjectView('gantt',this)">
+              <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>
+              甘特图
+            </div>
+            <div class="view-switcher-btn" onclick="switchProjectView('wbs',this)">
+              <svg viewBox="0 0 24 24"><path d="M3 3h7v4H3z"/><path d="M14 3h7v4h-7z"/><path d="M7 14h10v4H7z"/><line x1="6" y1="7" x2="6" y2="14"/><line x1="18" y1="7" x2="18" y2="14"/><line x1="12" y1="7" x2="12" y2="14"/></svg>
+              WBS
+            </div>
+            <div class="view-switcher-btn" onclick="switchProjectView('stats',this)">
+              <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              数据统计
+            </div>
+          </div>
+          <button class="btn btn-primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            新建项目
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="content-body">
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">活跃项目</div><div class="stat-value">5</div><div class="stat-change up">↑ 1 本季度</div></div>
+        <div class="stat-card"><div class="stat-label">总任务数</div><div class="stat-value">47</div><div class="stat-change up">↑ 8 本月</div></div>
+        <div class="stat-card"><div class="stat-label">按时完成率</div><div class="stat-value">83<span style="font-size:var(--text-xl);color:var(--color-text-tertiary)">%</span></div><div class="stat-change up">↑ 5%</div></div>
+        <div class="stat-card"><div class="stat-label">风险项目</div><div class="stat-value">1</div><div class="stat-change down">↓ 需关注</div></div>
+      </div>
+
+      <!-- ===== PROJECT LIST VIEW ===== -->
+      <div id="projectListView" class="view-panel active">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">项目列表</span>
+            <input type="text" placeholder="搜索项目..." style="padding:5px 10px;border-radius:var(--radius-md);border:1px solid var(--color-border);background:var(--color-bg-subtle);color:var(--color-text-primary);font-size:var(--text-xs);outline:none;width:180px">
+          </div>
+          <div style="overflow-x:auto">
+            <table class="data-table">
+              <thead>
+                <tr><th>项目</th><th>负责人</th><th>优先级</th><th>进度</th><th>状态</th><th>里程碑</th><th>开始</th><th>截止</th><th>操作</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><div style="font-weight:500;color:var(--color-text-primary)">新型高压拓扑研究</div><div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">PRJ-001 · 基础研究</div></td>
+                  <td><div style="display:flex;align-items:center;gap:6px"><div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#6366F1,#A855F7);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white">张</div>张工</div></td>
+                  <td><div class="priority-dot high" style="display:inline-block"></div> <span class="tag tag-red">高</span></td>
+                  <td style="min-width:140px"><div class="progress-bar"><div class="progress-fill blue" style="width:78%"></div></div><span style="font-size:10px;color:var(--color-text-tertiary)">78%</span></td>
+                  <td><span class="tag tag-blue">进行中</span></td>
+                  <td style="font-size:var(--text-xs)">样机验证</td>
+                  <td style="font-family:var(--font-mono);font-size:var(--text-xs)">2025-03-01</td>
+                  <td style="font-family:var(--font-mono);font-size:var(--text-xs)">2025-09-30</td>
+                  <td><button class="btn btn-sm btn-ghost">详情</button></td>
+                </tr>
+                <tr>
+                  <td><div style="font-weight:500;color:var(--color-text-primary)">BMS热管理优化</div><div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">PRJ-002 · 应用研究</div></td>
+                  <td><div style="display:flex;align-items:center;gap:6px"><div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#3B82F6,#6366F1);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white">李</div>李工</div></td>
+                  <td><div class="priority-dot high" style="display:inline-block"></div> <span class="tag tag-red">紧急</span></td>
+                  <td style="min-width:140px"><div class="progress-bar"><div class="progress-fill yellow" style="width:45%"></div></div><span style="font-size:10px;color:var(--color-text-tertiary)">45%</span></td>
+                  <td><span class="tag tag-yellow">风险</span></td>
+                  <td style="font-size:var(--text-xs)">仿真验证</td>
+                  <td style="font-family:var(--font-mono);font-size:var(--text-xs)">2025-05-01</td>
+                  <td style="font-family:var(--font-mono);font-size:var(--text-xs);color:var(--color-red)">2025-10-31</td>
+                  <td><button class="btn btn-sm btn-ghost">详情</button></td>
+                </tr>
+                <tr>
+                  <td><div style="font-weight:500;color:var(--color-text-primary)">电芯一致性分析</div><div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">PRJ-003 · 测试研究</div></td>
+                  <td><div style="display:flex;align-items:center;gap:6px"><div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#22C55E,#16A34A);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white">王</div>王工</div></td>
+                  <td><div class="priority-dot medium" style="display:inline-block"></div> <span class="tag tag-yellow">中</span></td>
+                  <td style="min-width:140px"><div class="progress-bar"><div class="progress-fill green" style="width:92%"></div></div><span style="font-size:10px;color:var(--color-text-tertiary)">92%</span></td>
+                  <td><span class="tag tag-blue">近完成</span></td>
+                  <td style="font-size:var(--text-xs)">报告发布</td>
+                  <td style="font-family:var(--font-mono);font-size:var(--text-xs)">2025-04-01</td>
+                  <td style="font-family:var(--font-mono);font-size:var(--text-xs)">2025-07-25</td>
+                  <td><button class="btn btn-sm btn-ghost">详情</button></td>
+                </tr>
+                <tr>
+                  <td><div style="font-weight:500;color:var(--color-text-primary)">AI电池寿命预测</div><div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">PRJ-004 · AI研究</div></td>
+                  <td><div style="display:flex;align-items:center;gap:6px"><div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#A855F7,#6366F1);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:white">张</div>张工</div></td>
+                  <td><div class="priority-dot medium" style="display:inline-block"></div> <span class="tag tag-yellow">中</span></td>
+                  <td style="min-width:140px"><div class="progress-bar"><div class="progress-fill purple" style="width:30%"></div></div><span style="font-size:10px;color:var(--color-text-tertiary)">30%</span></td>
+                  <td><span class="tag tag-blue">进行中</span></td>
+                  <td style="font-size:var(--text-xs)">数据采集</td>
+                  <td style="font-family:var(--font-mono);font-size:var(--text-xs)">2025-06-01</td>
+                  <td style="font-family:var(--font-mono);font-size:var(--text-xs)">2025-12-31</td>
+                  <td><button class="btn btn-sm btn-ghost">详情</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PROJECT KANBAN VIEW ===== -->
+      <div id="projectKanbanView" class="view-panel">
+        <div class="kanban-board" style="grid-template-columns:repeat(4,1fr)">
+          <div class="kanban-column">
+            <div class="kanban-column-header"><span class="kanban-column-title">📌 规划中</span><span class="kanban-column-count">1</span></div>
+            <div class="kanban-card">
+              <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-2)"><span class="tag tag-purple" style="font-size:10px">AI研究</span></div>
+              <div class="kanban-card-title">固态电池可行性研究</div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">PRJ-005</div>
+              <div style="margin-top:var(--space-3)"><div class="progress-bar"><div class="progress-fill purple" style="width:5%"></div></div></div>
+              <div class="kanban-card-meta"><span style="font-size:10px;color:var(--color-text-quaternary)">张工</span><span style="font-size:10px;color:var(--color-text-quaternary)">2026-Q1</span></div>
+            </div>
+          </div>
+          <div class="kanban-column">
+            <div class="kanban-column-header"><span class="kanban-column-title">🔄 进行中</span><span class="kanban-column-count">3</span></div>
+            <div class="kanban-card" style="border-left:3px solid var(--color-blue)">
+              <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-2)"><span class="tag tag-blue" style="font-size:10px">基础研究</span><div class="priority-dot high"></div></div>
+              <div class="kanban-card-title">新型高压拓扑研究</div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">PRJ-001</div>
+              <div style="margin-top:var(--space-2)"><div class="progress-bar"><div class="progress-fill blue" style="width:78%"></div></div><span style="font-size:10px;color:var(--color-text-quaternary)">78%</span></div>
+              <div class="kanban-card-meta"><span style="font-size:10px;color:var(--color-text-quaternary)">张工</span><span style="font-size:10px;color:var(--color-text-quaternary)">09-30</span></div>
+            </div>
+            <div class="kanban-card" style="border-left:3px solid var(--color-yellow)">
+              <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-2)"><span class="tag tag-yellow" style="font-size:10px">风险 ⚠</span><div class="priority-dot high"></div></div>
+              <div class="kanban-card-title">BMS热管理优化</div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">PRJ-002</div>
+              <div style="margin-top:var(--space-2)"><div class="progress-bar"><div class="progress-fill yellow" style="width:45%"></div></div><span style="font-size:10px;color:var(--color-text-quaternary)">45%</span></div>
+              <div class="kanban-card-meta"><span style="font-size:10px;color:var(--color-text-quaternary)">李工</span><span style="font-size:10px;color:var(--color-red)">10-31</span></div>
+            </div>
+            <div class="kanban-card">
+              <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-2)"><span class="tag tag-purple" style="font-size:10px">AI研究</span></div>
+              <div class="kanban-card-title">AI电池寿命预测</div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">PRJ-004</div>
+              <div style="margin-top:var(--space-2)"><div class="progress-bar"><div class="progress-fill purple" style="width:30%"></div></div><span style="font-size:10px;color:var(--color-text-quaternary)">30%</span></div>
+              <div class="kanban-card-meta"><span style="font-size:10px;color:var(--color-text-quaternary)">张工</span><span style="font-size:10px;color:var(--color-text-quaternary)">12-31</span></div>
+            </div>
+          </div>
+          <div class="kanban-column">
+            <div class="kanban-column-header"><span class="kanban-column-title">🔍 验收中</span><span class="kanban-column-count">1</span></div>
+            <div class="kanban-card" style="border-left:3px solid var(--color-green)">
+              <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-2)"><span class="tag tag-green" style="font-size:10px">测试研究</span></div>
+              <div class="kanban-card-title">电芯一致性分析</div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">PRJ-003</div>
+              <div style="margin-top:var(--space-2)"><div class="progress-bar"><div class="progress-fill green" style="width:92%"></div></div><span style="font-size:10px;color:var(--color-text-quaternary)">92%</span></div>
+              <div class="kanban-card-meta"><span style="font-size:10px;color:var(--color-text-quaternary)">王工</span><span style="font-size:10px;color:var(--color-green)">07-25</span></div>
+            </div>
+          </div>
+          <div class="kanban-column">
+            <div class="kanban-column-header"><span class="kanban-column-title">✅ 已完成</span><span class="kanban-column-count">2</span></div>
+            <div class="kanban-card">
+              <div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-2)"><span class="tag tag-green" style="font-size:10px">已交付</span></div>
+              <div class="kanban-card-title">低压辅助电源设计</div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-quaternary)">PRJ-006</div>
+              <div class="kanban-card-meta"><span style="font-size:10px;color:var(--color-text-quaternary)">赵工</span><span style="font-size:10px;color:var(--color-green)">✓ 完成</span></div>
+            </div>
+          </div>
+
+      <!-- ===== PROJECT GANTT VIEW ===== -->
+      <div id="projectGanttView" class="view-panel">
+        <div class="card">
+          <div class="card-header"><span class="card-title">项目甘特图 — 2025年3月 ~ 12月</span></div>
+          <div class="gantt-container" style="padding:var(--space-4)">
+            <div style="display:flex;margin-left:240px;margin-bottom:4px">
+              <div style="flex:1;text-align:center;font-size:var(--text-xs);color:var(--color-text-quaternary);font-weight:600;border-right:1px solid var(--color-border-subtle);padding:4px">Q1</div>
+              <div style="flex:1;text-align:center;font-size:var(--text-xs);color:var(--color-text-quaternary);font-weight:600;border-right:1px solid var(--color-border-subtle);padding:4px">Q2</div>
+              <div style="flex:1;text-align:center;font-size:var(--text-xs);color:var(--color-text-quaternary);font-weight:600;border-right:1px solid var(--color-border-subtle);padding:4px">Q3</div>
+              <div style="flex:1;text-align:center;font-size:var(--text-xs);color:var(--color-text-quaternary);font-weight:600;padding:4px">Q4</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center">
+                <div style="width:240px;font-size:var(--text-xs);font-weight:500;color:var(--color-text-primary)">PRJ-001 新型高压拓扑研究</div>
+                <div style="flex:1;position:relative;height:28px;background:var(--color-bg-hover);border-radius:var(--radius-sm)">
+                  <div style="position:absolute;left:0%;width:70%;top:4px;height:20px;background:linear-gradient(90deg,#3B82F6,#60A5FA);border-radius:var(--radius-sm);padding:0 8px;display:flex;align-items:center"><span style="font-size:10px;font-weight:600;color:white">78% · 03/01–09/30</span></div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center">
+                <div style="width:240px;font-size:var(--text-xs);font-weight:500;color:var(--color-text-primary)">PRJ-002 BMS热管理优化</div>
+                <div style="flex:1;position:relative;height:28px;background:var(--color-bg-hover);border-radius:var(--radius-sm)">
+                  <div style="position:absolute;left:33%;width:50%;top:4px;height:20px;background:linear-gradient(90deg,#EAB308,#FDE047);border-radius:var(--radius-sm);padding:0 8px;display:flex;align-items:center"><span style="font-size:10px;font-weight:600;color:white">45% · 05/01–10/31</span></div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center">
+                <div style="width:240px;font-size:var(--text-xs);font-weight:500;color:var(--color-text-primary)">PRJ-003 电芯一致性分析</div>
+                <div style="flex:1;position:relative;height:28px;background:var(--color-bg-hover);border-radius:var(--radius-sm)">
+                  <div style="position:absolute;left:25%;width:33%;top:4px;height:20px;background:linear-gradient(90deg,#22C55E,#4ADE80);border-radius:var(--radius-sm);padding:0 8px;display:flex;align-items:center"><span style="font-size:10px;font-weight:600;color:white">92% · 04/01–07/25</span></div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center">
+                <div style="width:240px;font-size:var(--text-xs);font-weight:500;color:var(--color-text-primary)">PRJ-004 AI电池寿命预测</div>
+                <div style="flex:1;position:relative;height:28px;background:var(--color-bg-hover);border-radius:var(--radius-sm)">
+                  <div style="position:absolute;left:42%;width:58%;top:4px;height:20px;background:linear-gradient(90deg,#A855F7,#C084FC);border-radius:var(--radius-sm);padding:0 8px;display:flex;align-items:center;border:1px dashed rgba(255,255,255,0.3)"><span style="font-size:10px;font-weight:600;color:white">30% · 06/01–12/31</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PROJECT WBS VIEW ===== -->
+      <div id="projectWbsView" class="view-panel">
+        <div class="card">
+          <div class="card-header"><span class="card-title">WBS 工作分解结构 — PRJ-001 新型高压拓扑研究</span></div>
+          <div class="card-body">
+            <div class="wbs-tree">
+              <div class="wbs-node">
+                <div class="wbs-node-header" onclick="toggleWBS(this)">
+                  <div class="wbs-toggle"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+                  <div class="wbs-icon" style="background:linear-gradient(135deg,#6366F1,#A855F7)">📦</div>
+                  <div class="wbs-label">PRJ-001 新型高压拓扑研究</div>
+                  <span class="tag tag-blue" style="font-size:10px;margin-left:auto">78%</span>
+                </div>
+                <div class="wbs-children">
+                  <div class="wbs-node">
+                    <div class="wbs-node-header" onclick="toggleWBS(this)">
+                      <div class="wbs-toggle"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+                      <div class="wbs-icon" style="background:var(--color-blue-subtle);color:var(--color-blue)">📋</div>
+                      <div class="wbs-label">1. 需求分析与方案设计</div>
+                      <span class="tag tag-green" style="font-size:10px;margin-left:auto">100%</span>
+                    </div>
+                    <div class="wbs-children">
+                      <div class="wbs-node wbs-leaf">
+                        <div class="wbs-node-header">
+                          <div class="wbs-toggle"></div>
+                          <div class="wbs-icon" style="background:var(--color-green-subtle);color:var(--color-green)">✓</div>
+                          <div class="wbs-label">1.1 技术需求调研</div>
+                          <span class="tag tag-green" style="font-size:9px;margin-left:auto">完成</span>
+                        </div>
+                      </div>
+                      <div class="wbs-node wbs-leaf">
+                        <div class="wbs-node-header">
+                          <div class="wbs-toggle"></div>
+                          <div class="wbs-icon" style="background:var(--color-green-subtle);color:var(--color-green)">✓</div>
+                          <div class="wbs-label">1.2 拓扑方案设计</div>
+                          <span class="tag tag-green" style="font-size:9px;margin-left:auto">完成</span>
+                        </div>
+                      </div>
+                      <div class="wbs-node wbs-leaf">
+                        <div class="wbs-node-header">
+                          <div class="wbs-toggle"></div>
+                          <div class="wbs-icon" style="background:var(--color-green-subtle);color:var(--color-green)">✓</div>
+                          <div class="wbs-label">1.3 方案评审</div>
+                          <span class="tag tag-green" style="font-size:9px;margin-left:auto">完成</span>
+                        </div>
+                      </div>
+                    </div>
+                  <div class="wbs-node">
+                    <div class="wbs-node-header" onclick="toggleWBS(this)">
+                      <div class="wbs-toggle"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+                      <div class="wbs-icon" style="background:var(--color-blue-subtle);color:var(--color-blue)">🔬</div>
+                      <div class="wbs-label">2. 仿真验证</div>
+                      <span class="tag tag-blue" style="font-size:10px;margin-left:auto">85%</span>
+                    </div>
+                    <div class="wbs-children">
+                      <div class="wbs-node wbs-leaf">
+                        <div class="wbs-node-header">
+                          <div class="wbs-toggle"></div>
+                          <div class="wbs-icon" style="background:var(--color-green-subtle);color:var(--color-green)">✓</div>
+                          <div class="wbs-label">2.1 电路仿真建模</div>
+                          <span class="tag tag-green" style="font-size:9px;margin-left:auto">完成</span>
+                        </div>
+                      </div>
+                      <div class="wbs-node wbs-leaf">
+                        <div class="wbs-node-header">
+                          <div class="wbs-toggle"></div>
+                          <div class="wbs-icon" style="background:var(--color-blue-subtle);color:var(--color-blue)">⏳</div>
+                          <div class="wbs-label">2.2 效率分析</div>
+                          <span class="tag tag-blue" style="font-size:9px;margin-left:auto">进行中</span>
+                        </div>
+                      </div>
+                      <div class="wbs-node wbs-leaf">
+                        <div class="wbs-node-header">
+                          <div class="wbs-toggle"></div>
+                          <div class="wbs-icon" style="background:var(--color-blue-subtle);color:var(--color-blue)">⏳</div>
+                          <div class="wbs-label">2.3 热仿真验证</div>
+                          <span class="tag tag-blue" style="font-size:9px;margin-left:auto">进行中</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="wbs-node">
+                    <div class="wbs-node-header" onclick="toggleWBS(this)">
+                      <div class="wbs-toggle"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+                      <div class="wbs-icon" style="background:var(--color-yellow-subtle);color:var(--color-yellow)">🔧</div>
+                      <div class="wbs-label">3. 样机制作与测试</div>
+                      <span class="tag tag-yellow" style="font-size:10px;margin-left:auto">60%</span>
+                    </div>
+                    <div class="wbs-children">
+                      <div class="wbs-node wbs-leaf">
+                        <div class="wbs-node-header">
+                          <div class="wbs-toggle"></div>
+                          <div class="wbs-icon" style="background:var(--color-green-subtle);color:var(--color-green)">✓</div>
+                          <div class="wbs-label">3.1 PCB设计</div>
+                          <span class="tag tag-green" style="font-size:9px;margin-left:auto">完成</span>
+                        </div>
+                      </div>
+                      <div class="wbs-node wbs-leaf">
+                        <div class="wbs-node-header">
+                          <div class="wbs-toggle"></div>
+                          <div class="wbs-icon" style="background:var(--color-blue-subtle);color:var(--color-blue)">⏳</div>
+                          <div class="wbs-label">3.2 样机组装</div>
+                          <span class="tag tag-blue" style="font-size:9px;margin-left:auto">进行中</span>
+                        </div>
+                      </div>
+                      <div class="wbs-node wbs-leaf">
+                        <div class="wbs-node-header">
+                          <div class="wbs-toggle"></div>
+                          <div class="wbs-icon" style="background:var(--color-bg-subtle);color:var(--color-text-quaternary)">○</div>
+                          <div class="wbs-label">3.3 性能测试</div>
+                          <span class="tag tag-neutral" style="font-size:9px;margin-left:auto">待启动</span>
+                        </div>
+                      </div>
+                    </div>
+                <div class="wbs-node">
+                    <div class="wbs-node-header">
+                      <div class="wbs-toggle"></div>
+                      <div class="wbs-icon" style="background:var(--color-bg-subtle);color:var(--color-text-quaternary)">📄</div>
+                      <div class="wbs-label">4. 文档与交付</div>
+                      <span class="tag tag-neutral" style="font-size:10px;margin-left:auto">待启动</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== PROJECT STATS VIEW ===== -->
+      <div id="projectStatsView" class="view-panel">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header"><span class="card-title">项目进度分布</span></div>
+            <div class="card-body">
+              <div style="display:flex;align-items:flex-end;gap:8px;height:140px">
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+                  <div style="flex:1;width:100%;display:flex;align-items:flex-end"><div style="width:100%;height:20%;background:linear-gradient(180deg,var(--color-red),rgba(239,68,68,0.4));border-radius:4px 4px 0 0"></div></div>
+                  <span style="font-size:10px;color:var(--color-text-quaternary)">0-25%</span>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+                  <div style="flex:1;width:100%;display:flex;align-items:flex-end"><div style="width:100%;height:40%;background:linear-gradient(180deg,var(--color-yellow),rgba(234,179,8,0.4));border-radius:4px 4px 0 0"></div></div>
+                  <span style="font-size:10px;color:var(--color-text-quaternary)">25-50%</span>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+                  <div style="flex:1;width:100%;display:flex;align-items:flex-end"><div style="width:100%;height:60%;background:linear-gradient(180deg,var(--color-blue),rgba(59,130,246,0.4));border-radius:4px 4px 0 0"></div></div>
+                  <span style="font-size:10px;color:var(--color-text-quaternary)">50-75%</span>
+                </div>
+                <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+                  <div style="flex:1;width:100%;display:flex;align-items:flex-end"><div style="width:100%;height:80%;background:linear-gradient(180deg,var(--color-green),rgba(34,197,94,0.4));border-radius:4px 4px 0 0"></div></div>
+                  <span style="font-size:10px;color:var(--color-text-quaternary)">75-100%</span>
+                </div>
+              </div><div style="margin-top:var(--space-4);display:flex;justify-content:space-between">
+                <span style="font-size:var(--text-xs);color:var(--color-text-tertiary)">平均进度</span>
+                <span style="font-size:var(--text-sm);font-weight:700;font-family:var(--font-mono);color:var(--color-accent)">61%</span>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">项目类型分布</span></div>
+            <div class="card-body">
+              <div style="display:flex;flex-direction:column;gap:var(--space-3)">
+                <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:var(--text-xs);color:var(--color-text-secondary)">基础研究</span><span style="font-size:var(--text-xs);font-weight:600;font-family:var(--font-mono)">40%</span></div><div class="progress-bar"><div class="progress-fill blue" style="width:40%"></div></div></div>
+                <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:var(--text-xs);color:var(--color-text-secondary)">应用研究</span><span style="font-size:var(--text-xs);font-weight:600;font-family:var(--font-mono)">30%</span></div><div class="progress-bar"><div class="progress-fill green" style="width:30%"></div></div></div>
+                <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:var(--text-xs);color:var(--color-text-secondary)">测试研究</span><span style="font-size:var(--text-xs);font-weight:600;font-family:var(--font-mono)">20%</span></div><div class="progress-bar"><div class="progress-fill yellow" style="width:20%"></div></div></div>
+                <div><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:var(--text-xs);color:var(--color-text-secondary)">AI研究</span><span style="font-size:var(--text-xs);font-weight:600;font-family:var(--font-mono)">10%</span></div><div class="progress-bar"><div class="progress-fill purple" style="width:10%"></div></div></div>
+              </div>
+            </div>
+          </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">项目健康度评估</span></div>
+          <div style="overflow-x:auto">
+            <table class="data-table">
+              <thead><tr><th>项目</th><th>进度健康</th><th>质量健康</th><th>资源健康</th><th>风险等级</th><th>综合评分</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td style="font-weight:500;color:var(--color-text-primary)">PRJ-001 新型高压拓扑研究</td>
+                  <td><span class="tag tag-green">良好</span></td>
+                  <td><span class="tag tag-green">优秀</span></td>
+                  <td><span class="tag tag-green">充足</span></td>
+                  <td><span class="tag tag-green">低</span></td>
+                  <td style="font-family:var(--font-mono);font-weight:700;color:var(--color-green)">92</td>
+                </tr>
+                <tr>
+                  <td style="font-weight:500;color:var(--color-text-primary)">PRJ-002 BMS热管理优化</td>
+                  <td><span class="tag tag-red">延期</span></td>
+                  <td><span class="tag tag-yellow">一般</span></td>
+                  <td><span class="tag tag-yellow">紧张</span></td>
+                  <td><span class="tag tag-red">高</span></td>
+                  <td style="font-family:var(--font-mono);font-weight:700;color:var(--color-red)">58</td>
+                </tr>
+                <tr>
+                  <td style="font-weight:500;color:var(--color-text-primary)">PRJ-003 电芯一致性分析</td>
+                  <td><span class="tag tag-green">良好</span></td>
+                  <td><span class="tag tag-green">优秀</span></td>
+                  <td><span class="tag tag-green">充足</span></td>
+                  <td><span class="tag tag-green">低</span></td>
+                  <td style="font-family:var(--font-mono);font-weight:700;color:var(--color-green)">95</td>
+                </tr>
+                <tr>
+                  <td style="font-weight:500;color:var(--color-text-primary)">PRJ-004 AI电池寿命预测</td>
+                  <td><span class="tag tag-blue">正常</span></td>
+                  <td><span class="tag tag-blue">良好</span></td>
+                  <td><span class="tag tag-green">充足</span></td>
+                  <td><span class="tag tag-yellow">中</span></td>
+                  <td style="font-family:var(--font-mono);font-weight:700;color:var(--color-blue)">78</td>
+                </tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div><!-- /projectStatsView -->
+
+    </div><!-- /content-body -->
+  </div><!-- /content-area -->
+</div><!-- /app-shell -->
+</div><!-- /page-projects -->
+
+<!-- ============================================================PAGE 4: PERFORMANCE (月度绩效)
+     ============================================================ -->
+<div class="page-section" id="page-performance">
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">B</div>
+      <div><div class="sidebar-title">BST Platform</div></div>
+      <span class="sidebar-version">v2.0</span>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">工作台</div>
+      <div class="nav-item" onclick="showPage('home')">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+        工作台首页
+      </div>
+      <div class="nav-item" onclick="showPage('security')">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+        安全评审看板
+      </div>
+      <div class="nav-item" onclick="showPage('projects')">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
+        项目视图
+      </div>
+      <div class="nav-item active">
+        <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
+        月度绩效
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar">ZG</div>
+        <div><div class="user-name">张工</div><div class="user-role">高级研发工程师</div></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="content-area">
+    <div class="page-header">
+      <div class="page-header-top">
+        <div>
+          <div class="page-title">月度绩效评估</div>
+          <div class="page-subtitle">2025年7月 · 综合得分 87分 · 优秀</div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-secondary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            导出报告
+          </button><button class="btn btn-primary">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            查看历史
+          </button>
+        </div>
+      </div></div>
+
+    <div class="content-body">
+      <!-- Score Overview -->
+      <div class="perf-grid">
+        <div class="card">
+          <div class="card-header"><span class="card-title">综合得分</span></div>
+          <div class="perf-score-ring">
+            <div class="ring-wrap">
+              <svg class="ring-svg" viewBox="0 0 140 140">
+                <circle class="ring-bg" cx="70" cy="70" r="60"/>
+                <circle class="ring-fill" cx="70" cy="70" r="60" stroke="url(#grad1)" stroke-dasharray="377" stroke-dashoffset="49" style="stroke-dashoffset:49"/>
+                <defs><linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#6366F1;stop-opacity:1"/><stop offset="100%" style="stop-color:#A855F7;stop-opacity:1"/></linearGradient></defs></svg>
+              <div class="ring-center">
+                <div class="ring-score">87</div>
+                <div class="ring-score-label">优秀</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">KPI 指标明细</span></div>
+          <div class="perf-kpi-list">
+            <div class="perf-kpi-item">
+              <div class="perf-kpi-header">
+                <span class="perf-kpi-name">任务完成率</span>
+                <span class="perf-kpi-score" style="color:var(--color-green)">92</span>
+              </div>
+              <div class="perf-kpi-weight">权重: 30%</div>
+              <div class="perf-kpi-meta">
+                <span class="perf-kpi-target">目标: ≥85</span>
+                <span class="tag tag-green" style="font-size:10px">达标</span>
+              </div>
+            </div>
+            <div class="perf-kpi-item">
+              <div class="perf-kpi-header">
+                <span class="perf-kpi-name">安全评审质量</span>
+                <span class="perf-kpi-score" style="color:var(--color-blue)">85</span>
+              </div>
+              <div class="perf-kpi-weight">权重: 25%</div>
+              <div class="perf-kpi-meta">
+                <span class="perf-kpi-target">目标: ≥80</span>
+                <span class="tag tag-green" style="font-size:10px">达标</span>
+              </div>
+            </div>
+            <div class="perf-kpi-item">
+              <div class="perf-kpi-header">
+                <span class="perf-kpi-name">专利输出</span>
+                <span class="perf-kpi-score" style="color:var(--color-yellow)">60</span>
+              </div>
+              <div class="perf-kpi-weight">权重: 20%</div>
+              <div class="perf-kpi-meta">
+                <span class="perf-kpi-target">目标: 5篇</span>
+                <span class="tag tag-yellow" style="font-size:10px">进行中</span>
+              </div>
+            </div>
+            <div class="perf-kpi-item">
+              <div class="perf-kpi-header">
+                <span class="perf-kpi-name">技术分享贡献</span>
+                <span class="perf-kpi-score" style="color:var(--color-green)">100</span>
+              </div>
+              <div class="perf-kpi-weight">权重: 15%</div>
+              <div class="perf-kpi-meta">
+                <span class="perf-kpi-target">目标: ≥2次</span>
+                <span class="tag tag-green" style="font-size:10px">超额完成</span>
+              </div>
+            </div><div class="perf-kpi-item">
+              <div class="perf-kpi-header">
+                <span class="perf-kpi-name">团队协作</span>
+                <span class="perf-kpi-score" style="color:var(--color-blue)">88</span>
+              </div>
+              <div class="perf-kpi-weight">权重: 10%</div>
+              <div class="perf-kpi-meta">
+                <span class="perf-kpi-target">目标: ≥80</span>
+                <span class="tag tag-green" style="font-size:10px">达标</span>
+              </div>
+            </div>
+          </div>
+        </div></div>
+
+      <!-- Detailed Breakdown -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">📊 详细数据分析</span></div>
+        <div class="card-body">
+          <div class="grid-3">
+            <div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-quaternary);margin-bottom:var(--space-2)">本月完成任务</div>
+              <div style="font-size:var(--text-2xl);font-weight:800;color:var(--color-text-primary)">23<span style="font-size:var(--text-lg);color:var(--color-text-tertiary);margin-left:4px">个</span></div>
+              <div style="font-size:var(--text-xs);color:var(--color-green);margin-top:4px">↑ 较上月 +5</div>
+            </div>
+            <div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-quaternary);margin-bottom:var(--space-2)">安全评审参与</div>
+              <div style="font-size:var(--text-2xl);font-weight:800;color:var(--color-text-primary)">4<span style="font-size:var(--text-lg);color:var(--color-text-tertiary);margin-left:4px">次</span></div>
+              <div style="font-size:var(--text-xs);color:var(--color-blue);margin-top:4px">主导2次 · 参与2次</div>
+            </div>
+            <div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-quaternary);margin-bottom:var(--space-2)">技术分享</div>
+              <div style="font-size:var(--text-2xl);font-weight:800;color:var(--color-text-primary)">3<span style="font-size:var(--text-lg);color:var(--color-text-tertiary);margin-left:4px">次</span></div>
+              <div style="font-size:var(--text-xs);color:var(--color-green);margin-top:4px">✓ 超额完成50%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monthly Comparison -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">📈 月度对比趋势</span></div>
+        <div class="card-body">
+          <div style="display:flex;align-items:flex-end;gap:10px;height:160px">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+              <div style="flex:1;width:100%;display:flex;align-items:flex-end">
+                <div style="width:100%;height:72%;background:linear-gradient(180deg,#3B82F6,rgba(59,130,246,0.3));border-radius:6px 6px 0 0"></div>
+              </div>
+              <div style="font-size:var(--text-xs);font-weight:600;font-family:var(--font-mono);color:var(--color-text-primary)">72</div>
+              <span style="font-size:10px;color:var(--color-text-quaternary)">4月</span>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+              <div style="flex:1;width:100%;display:flex;align-items:flex-end">
+                <div style="width:100%;height:80%;background:linear-gradient(180deg,#3B82F6,rgba(59,130,246,0.3));border-radius:6px 6px 0 0"></div>
+              </div>
+              <div style="font-size:var(--text-xs);font-weight:600;font-family:var(--font-mono);color:var(--color-text-primary)">80</div>
+              <span style="font-size:10px;color:var(--color-text-quaternary)">5月</span>
+            </div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+              <div style="flex:1;width:100%;display:flex;align-items:flex-end">
+                <div style="width:100%;height:76%;background:linear-gradient(180deg,#3B82F6,rgba(59,130,246,0.3));border-radius:6px 6px 0 0"></div>
+              </div>
+              <div style="font-size:var(--text-xs);font-weight:600;font-family:var(--font-mono);color:var(--color-text-primary)">76</div>
+              <span style="font-size:10px;color:var(--color-text-quaternary)">6月</span>
+            </div><div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px">
+              <div style="flex:1;width:100%;display:flex;align-items:flex-end">
+                <div style="width:100%;height:87%;background:linear-gradient(180deg,#6366F1,rgba(99,102,241,0.3));border-radius:6px 6px 0 0;box-shadow:0 0 16px rgba(99,102,241,0.4)"></div>
+              </div>
+              <div style="font-size:var(--text-xs);font-weight:600;font-family:var(--font-mono);color:var(--color-accent)">87</div>
+              <span style="font-size:10px;color:var(--color-accent)">7月</span>
+            </div>
+          </div>
+          <div style="margin-top:var(--space-4);padding:var(--space-3);background:var(--color-accent-subtle);border:1px solid var(--color-accent-border);border-radius:var(--radius-md)">
+            <div style="font-size:var(--text-xs);color:var(--color-text-secondary);line-height:1.6">
+              <strong style="color:var(--color-text-primary)">趋势分析：</strong>本月得分 <strong style="color:var(--color-accent-hover)">87分</strong>，较上月提升 <strong style="color:var(--color-green)">11分</strong>，连续3个月保持上升趋势，表现优异。
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Achievements -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">🏆 本月亮点成就</span></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4)">
+            <div style="padding:var(--space-4);background:var(--color-green-subtle);border:1px solid var(--color-green-border);border-radius:var(--radius-lg)">
+              <div style="font-size:32px;margin-bottom:var(--space-2)">🎯</div>
+              <div style="font-size:var(--text-sm);font-weight:600;color:var(--color-text-primary);margin-bottom:var(--space-2)">任务完成率创新高</div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-secondary);line-height:1.6">本月完成23个任务，完成率达92%，为今年最高记录</div>
+            </div>
+            <div style="padding:var(--space-4);background:var(--color-blue-subtle);border:1px solid var(--color-blue-border);border-radius:var(--radius-lg)">
+              <div style="font-size:32px;margin-bottom:var(--space-2)">🛡️</div>
+              <div style="font-size:var(--text-sm);font-weight:600;color:var(--color-text-primary);margin-bottom:var(--space-2)">安全评审质量优秀</div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-secondary);line-height:1.6">主导SR-001高压拓扑安全评审，获团队一致好评</div>
+            </div>
+            <div style="padding:var(--space-4);background:var(--color-purple-subtle);border:1px solid var(--color-purple-border);border-radius:var(--radius-lg)">
+              <div style="font-size:32px;margin-bottom:var(--space-2)">💡</div>
+              <div style="font-size:var(--text-sm);font-weight:600;color:var(--color-text-primary);margin-bottom:var(--space-2)">技术分享超额完成</div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-secondary);line-height:1.6">完成3次技术分享，超额50%，推动团队技术提升</div>
+            </div>
+            <div style="padding:var(--space-4);background:var(--color-yellow-subtle);border:1px solid var(--color-yellow-border);border-radius:var(--radius-lg)">
+              <div style="font-size:32px;margin-bottom:var(--space-2)">📝</div>
+              <div style="font-size:var(--text-sm);font-weight:600;color:var(--color-text-primary);margin-bottom:var(--space-2)">专利申请稳步推进</div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-secondary);line-height:1.6">已完成3篇专利交底书，预计8月可达成5篇目标</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Improvement Suggestions -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">💬 改进建议</span></div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:var(--space-3)">
+            <div style="display:flex;gap:var(--space-3);align-items:flex-start">
+              <div style="width:28px;height:28px;border-radius:50%;background:var(--color-yellow-subtle);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">⚡</div>
+              <div>
+                <div style="font-size:var(--text-sm);font-weight:500;color:var(--color-text-primary);margin-bottom:4px">加速专利输出进度</div>
+                <div style="font-size:var(--text-xs);color:var(--color-text-secondary);line-height:1.6">当前专利输出进度60%，建议本周启动第4篇交底书撰写，确保月底达成目标</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:var(--space-3);align-items:flex-start">
+              <div style="width:28px;height:28px;border-radius:50%;background:var(--color-blue-subtle);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🤝</div>
+              <div>
+                <div style="font-size:var(--text-sm);font-weight:500;color:var(--color-text-primary);margin-bottom:4px">加强跨部门协作</div>
+                <div style="font-size:var(--text-xs);color:var(--color-text-secondary);line-height:1.6">建议增加与测试部门的沟通频次，提升项目推进效率</div>
+              </div>
+            </div></div>
+        </div>
+      </div></div><!-- /content-body -->
+  </div><!-- /content-area -->
+</div><!-- /app-shell -->
+</div><!-- /page-performance -->
+
+<!-- ============================================================JAVASCRIPT============================================================ -->
+<script>
+// Theme Toggle
+function toggleTheme() {
+  const html = document.documentElement;
+  const currentTheme = html.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', newTheme);
+  document.getElementById('themeLabel').textContent = newTheme === 'dark' ? '切换白天' : '切换夜间';document.getElementById('themeIcon').textContent = newTheme === 'dark' ? '☀️' : '🌙';
+}
+
+// Page Navigation
+function showPage(pageId) {
+  document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + pageId).classList.add('active');
+  document.querySelectorAll('.page-nav-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+}
+
+// AI Mode Toggle
+let aiModeActive = false;
+function toggleAIMode() {
+  aiModeActive = !aiModeActive;
+  const btn = document.getElementById('aiModeBtn');
+  const normalHeader = document.getElementById('normalHeader');
+  const normalBody = document.getElementById('normalHomeBody');
+  const aiBody = document.getElementById('aiHomeBody');
+  
+  if (aiModeActive) {
+    btn.classList.add('active');
+    btn.innerHTML = '<span>✦</span><span>退出 AI 模式</span>';
+    normalHeader.style.display = 'none';
+    normalBody.style.display = 'none';
+    aiBody.style.display = 'flex';
+    typeAIGreeting();
+  } else {
+    btn.classList.remove('active');
+    btn.innerHTML = '<span>✦</span><span>AI 智能模式</span><span class="ai-badge">BETA</span>';
+    normalHeader.style.display = 'block';
+    normalBody.style.display = 'flex';
+    aiBody.style.display = 'none';
+  }
+}
+
+// AI Greeting Typing Effect
+function typeAIGreeting() {
+  const text = "我已经分析了你的工作状态和项目进展。今天有 <strong>3个紧急任务</strong> 需要优先处理，其中 <strong>TSK-019 热失控仿真验证</strong> 最为紧急。你的本月 KPI 完成度为 <strong>87%</strong>，距离优秀评级还差 <strong>5分</strong>。我建议优先完成安全评审相关任务，这将显著提升你的绩效得分。需要我为你生成今日工作计划吗？";
+  const el = document.getElementById('aiGreetingText');
+  let i = 0;
+  el.innerHTML = '';
+  
+  function type() {
+    if (i < text.length) {
+      if (text.substr(i, 8) === '<strong>') {
+        const endTag = text.indexOf('</strong>', i);
+        el.innerHTML += text.substring(i, endTag + 9);
+        i = endTag + 9;
+      } else {
+        el.innerHTML += text.charAt(i);
+        i++;
+      }
+      setTimeout(type, 20);
+    } else {
+      el.innerHTML += '<span class="ai-typing-cursor"></span>';
+    }
+  }
+  type();
+}
+
+// Security View Switcher
+function switchSecurityView(view, btn) {
+  document.querySelectorAll('#securityViewSwitcher .view-switcher-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('#page-security .view-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('security' + view.charAt(0).toUpperCase() + view.slice(1) + 'View').classList.add('active');
+}
+
+// Project View Switcher
+function switchProjectView(view, btn) {
+  document.querySelectorAll('#projectViewSwitcher .view-switcher-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('#page-projects .view-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('project' + view.charAt(0).toUpperCase() + view.slice(1) + 'View').classList.add('active');
+}
+
+// WBS Tree Toggle
+function toggleWBS(el) {
+  const node = el.parentElement;
+  const children = node.querySelector('.wbs-children');
+  if (children) {
+    const isOpen = children.style.display !== 'none';
+    children.style.display = isOpen ? 'none' : 'block';
+    el.querySelector('.wbs-toggle svg').style.transform = isOpen ? 'rotate(-90deg)' : 'rotate(0deg)';
+  }
+}
+
+// Chat Functions
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  
+  const messagesDiv = document.getElementById('chatMessages');
+  const userMsg = document.createElement('div');
+  userMsg.className = 'chat-msg user';
+  userMsg.innerHTML = `
+    <div class="chat-msg-avatar user-av">ZG</div>
+    <div class="chat-bubble">${msg}</div>
+  `;
+  messagesDiv.appendChild(userMsg);
+  input.value = '';
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  
+  setTimeout(() => {
+    const aiMsg = document.createElement('div');
+    aiMsg.className = 'chat-msg';
+    aiMsg.innerHTML = `
+      <div class="chat-msg-avatar">AI</div>
+      <div class="chat-bubble"><p>收到你的问题，正在分析...</p></div>
+    `;
+    messagesDiv.appendChild(aiMsg);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  }, 800);
+}
+
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendChat();
+  }
+}
+
+function sendQuickMsg(el) {
+  const input = document.getElementById('chatInput');
+  input.value = el.textContent;
+  sendChat();
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (prefersDark) {
+    document.documentElement.setAttribute('data-theme', 'dark');document.getElementById('themeLabel').textContent = '切换白天';
+    document.getElementById('themeIcon').textContent = '☀️';
+  }
+});
+</script>
+
+</body>
+</html>
