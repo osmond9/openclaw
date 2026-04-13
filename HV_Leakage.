@@ -1,0 +1,620 @@
+# 动力电池风险识别系统 v1.0 — 完整技术档案
+
+---
+
+## 一、项目背景与目标
+
+**业务场景**：对新能源车队（64辆）的动力电池进行实时/离线风险评估，识别电压异常、温度异常、充电行为风险、负荷风险、故障风险，输出每辆车的综合风险等级与处置建议。
+
+**数据规模**：
+- 总记录数：**37,086,196 条**
+- 车辆数量：**64 辆**
+- 原始内存：**73 GB**（全量加载）
+- 数据格式：`.parquet`（列式存储，支持按VIN过滤读取）
+
+---
+
+## 二、项目结构
+
+```
+HV_Leakage/
+│
+├── main.py                          # 主入口（内存安全版）
+│
+├── data/
+│   ├── raw/
+│   │   ├── normal/                  # 正常车辆原始数据
+│   │   └── risk/                    # 风险车辆原始数据
+│   ├── labels/
+│   │   └── vehicle_labels.csv       # 车辆标签（vin + risk_label）
+│   └── labeled/
+│       └── all_vehicles_labeled.parquet  # 预处理后打标数据（主输入）
+│
+├── output/
+│   ├── risk_results.csv             # 最终风险评估结果（主输出）
+│   └── figures/                     # 可视化图表
+│
+└── battery_risk/                    # 核心包
+    ├── __init__.py
+    ├── config.py                    # 全局常量配置（唯一真相来源）
+    ├── pipeline.py                  # 主流程调度（内存安全，按VIN批次）
+    ├── utils.py                     # 通用工具函数
+    │
+    └── modules/
+        ├── __init__.py
+        ├── operating_scene.py       # L1 工况识别
+        ├── voltage_risk.py          # L2 电压风险评分
+        ├── temperature_risk.py      # L2 温度风险评分
+        ├── charge_risk.py           # L2 充电行为风险评分
+        ├── load_risk.py             # L2 负荷风险评分
+        ├── fault_risk.py            # L2 故障风险评分
+        └── fusion.py                # L3 综合融合
+```
+
+---
+
+## 三、数据字段说明
+
+### 核心字段（原始值为中文字符串）
+
+| 字段 | 类型 | 原始值（实际字符串） | 含义 |
+|---|---|---|---|
+| `vin` | str | 车辆唯一编码 | 车辆ID |
+| `date` | str/date | YYYY-MM-DD | 日期 |
+| `time` | str/time | HH:MM:SS | 时间 |
+| `vstate` | str | `'熄火'` / `'车辆启动状态'` | 车辆状态 |
+| `cstate` | str | `'未充电状态'`/`'停车充电'`/`'充电完成'`/`'行驶充电'` | 充电状态 |
+| `dcstate` | str | `'断开'` / `'工作'` | DC-DC转换器状态 |
+| `gear` | str | 12种组合（见下方） | 档位+驱动力+制动力 |
+| `mstate_0/1` | str | `'关闭状态'`/`'耗电'`/`'发电'` | 电机状态 |
+| `sbp` | str | `'制动关'` / `'制动有效'` | 制动踏板信号 |
+| `rstate` | str | `'纯电'` | 行驶模式 |
+
+### gear字段完整12种原始值
+
+```
+【有驱动力×无制动力】× 3挡 = 3种
+  有驱动力无制动力倒挡
+  有驱动力无制动力停车P挡
+  有驱动力无制动力自动D挡
+
+【有驱动力×有制动力】× 3挡 = 3种
+  有驱动力有制动力倒挡
+  有驱动力有制动力停车P挡
+  有驱动力有制动力自动D挡
+
+【无驱动力×无制动力】× 3挡 = 3种
+  无驱动力无制动力倒挡
+  无驱动力无制动力停车P挡
+  无驱动力无制动力自动D挡
+
+【无驱动力×有制动力】× 3挡 = 3种
+  无驱动力有制动力倒挡
+  无驱动力有制动力停车P挡
+  无驱动力有制动力自动D挡
+```
+
+### 数值字段
+
+| 字段 | 单位 | 含义 |
+|---|---|---|
+| `speed` | km/h | 车速 |
+| `soc` | % | 电池荷电状态 |
+| `tbc` | A | 总电流（>0放电，<0充电/回收） |
+| `tbv` | V | 总电压 |
+| `maxt`/`mint` | °C | 电池最高/最低温度 |
+| `maxtn`/`mintn` | - | 最高/最低温度探针编号 |
+| `maxbuv`/`minbuv` | V | 单体最高/最低电压 |
+| `maxvbn`/`minvbn` | - | 最高/最低电压单体编号 |
+| `inre` | Ω | 绝缘电阻（正常为高阻>1000Ω） |
+| `halvl` | - | 告警等级（0=无，1=一级，2=二级严重） |
+| `aobf` | - | 电池故障码数量 |
+| `aodmf` | - | 驱动电机故障码 |
+| `aoef` | - | 发动机故障码 |
+| `aoof` | - | 其他故障码 |
+| `ad` | - | 加速度 |
+| `mtor_0/1` | Nm | 电机转矩 |
+| `mtemp_0/1` | °C | 电机温度 |
+| `mctemp_0/1` | °C | 电机控制器温度 |
+| `mcinv_0/1` | V | 电机控制器输入电压 |
+| `mcdbc_0/1` | A | 电机控制器直流电流 |
+| `mil` | - | 里程 |
+
+---
+
+## 四、config.py 核心常量速查
+
+### 字段实际值常量
+
+```python
+# vstate
+VSTATE_OFF = '熄火'
+VSTATE_ON  = '车辆启动状态'
+
+# cstate
+CSTATE_NO_CHARGE    = '未充电状态'
+CSTATE_STOP_CHARGE  = '停车充电'
+CSTATE_CHARGE_DONE  = '充电完成'
+CSTATE_DRIVE_CHARGE = '行驶充电'
+CSTATE_PARK_CHARGE_SET = {'停车充电', '充电完成'}
+CSTATE_CHARGING_SET    = {'停车充电', '充电完成', '行驶充电'}
+
+# dcstate
+DCSTATE_DISCONNECT = '断开'
+DCSTATE_WORK       = '工作'
+
+# gear（集合）
+GEAR_HAS_DRIVE_SET     # 6种（有驱动力）
+GEAR_NO_DRIVE_SET      # 6种（无驱动力）
+GEAR_HAS_BRAKE_SET     # 6种（有制动力）
+GEAR_NO_BRAKE_SET      # 6种（无制动力）
+GEAR_P_SET             # 4种（P挡）
+GEAR_D_SET             # 4种（D挡）
+GEAR_R_SET             # 4种（R挡）
+GEAR_DRIVE_SET         # 1种（D+有驱+无制=正常行驶）
+GEAR_COAST_SET         # 1种（D+无驱+无制=滑行）
+GEAR_REGEN_TYPICAL_SET # 1种（D+无驱+有制=制动回收典型）
+GEAR_STATIC_SET        # 1种（P+无驱+无制=纯停车）
+GEAR_MOVING_SET        # D+R 共8种
+GEAR_ALL_VALUES        # 全部12种
+GEAR_DEFAULT           = '无驱动力无制动力停车P挡'
+
+# mstate
+MSTATE_OFF      = '关闭状态'
+MSTATE_CONSUME  = '耗电'
+MSTATE_GEN      = '发电'
+
+# sbp
+SBP_INACTIVE = '制动关'
+SBP_ACTIVE   = '制动有效'
+```
+
+### 关键阈值
+
+```python
+# 速度 (km/h)
+SPEED_STATIC    = 2.0
+SPEED_CREEP     = 5.0
+SPEED_LOW       = 20.0
+SPEED_MEDIUM    = 60.0
+SPEED_HIGH      = 100.0
+SPEED_VERY_HIGH = 120.0
+
+# SOC (%)
+SOC_CRITICAL_LOW = 10.0
+SOC_LOW_ZONE     = 20.0
+SOC_HIGH_ZONE    = 90.0
+SOC_FULL_ZONE    = 98.0
+
+# 电流 (A)
+MIN_CHARGE_CURRENT_ABS    = 3.0
+DISCHARGE_CURRENT_HIGH    = 150.0
+DISCHARGE_CURRENT_WARNING = 100.0
+
+# 充电功率 (W)
+SLOW_CHARGE_POWER_MAX  = 7000.0    # 慢充上限
+FAST_CHARGE_POWER_MIN  = 10000.0   # 快充下限
+GREY_CHARGE_POWER_LOW  = 7000.0    # 灰色区间下限
+GREY_CHARGE_POWER_HIGH = 10000.0   # 灰色区间上限
+REGEN_SPEED_MIN        = 5.0       # 制动回收最低车速
+
+# 电压 (V)
+VOLT_MAX_THRESHOLD   = 4.25
+VOLT_MIN_THRESHOLD   = 2.80
+VOLT_DIFF_THRESHOLD  = 0.30
+VOLT_DIFF_WARNING    = 0.15
+VOLT_DIFF_CHARGE_END = 0.20
+
+# 温度 (°C)
+TEMP_MAX_THRESHOLD       = 45.0
+TEMP_HIGH_WARNING        = 40.0
+TEMP_DIFF_THRESHOLD      = 8.0
+TEMP_RISE_RATE_THRESHOLD = 2.0
+STATIC_TEMP_RISE_TH      = 3.0
+
+# 故障
+FAULT_INSULATION_LOW  = 100.0   # Ω
+FAULT_INSULATION_WARN = 500.0   # Ω
+HALVL_SERIOUS         = 2
+```
+
+### 融合权重
+
+```python
+FUSION_WEIGHTS = {
+    'volt_risk_score':   0.30,
+    'temp_risk_score':   0.25,
+    'charge_risk_score': 0.15,
+    'load_risk_score':   0.15,
+    'fault_risk_score':  0.15,
+}
+RULE_ESCALATE_THRESHOLD = 0.75   # 任意子项超过此值→强制升档
+```
+
+### 风险等级
+
+```python
+RISK_LEVEL_MAP = {
+    'Low':      0.30,   # score ≤ 0.30
+    'Medium':   0.60,   # score ≤ 0.60
+    'High':     1.00,   # score ≤ 1.00
+    'Critical': inf,    # score > 1.00（规则升档）
+}
+RISK_LEVEL_CN     = {'Low':'低风险','Medium':'中风险','High':'高风险','Critical':'极高风险'}
+RISK_LEVEL_ACTION = {'Low':'正常使用','Medium':'建议监控','High':'定期检查','Critical':'立即停用送检'}
+RISK_LEVEL_CODE   = {'Low':0,'Medium':1,'High':2,'Critical':3}
+```
+
+---
+
+## 五、算法流程详解
+
+### L1 — 工况识别（operating_scene.py）
+
+**目标**：给每一条记录打上工况标签，为后续风险计算提供分析上下文。
+
+#### 主工况标签（scene_tag，7类）
+
+```
+fast_charge     直流快充（停车+功率>10kW+cstate=停车充电）
+slow_charge     交流慢充（停车+功率≤10kW+cstate=停车充电）
+drive_charge    行驶充电（行驶中+cstate=行驶充电，PHEV/增程）
+regen_braking   制动能量回收（行驶中+tbc<0+任一制动信号）
+drive           正常行驶放电（tbc>0+speed>2km/h）
+rest_on         上电静置（vstate=启动+speed≤2+无充电）
+rest_off        熄火停放（vstate=熄火）
+```
+
+#### 充电类型识别优先级（charge_type）
+
+```
+优先级1: regen_braking  → tbc<0 + speed>5km/h + 制动信号
+优先级2: fast_charge    → tbc<0 + 静止 + 功率>10kW + 停车充电
+优先级3: slow_charge    → tbc<0 + 静止 + 功率≤10kW + 停车充电
+         （含灰色区间7~10kW，单独标记is_grey_charge_zone=1）
+优先级4: drive_charge   → tbc<0 + 行驶 + cstate=行驶充电
+默认:    no_charge
+```
+
+#### 制动信号综合判断
+
+```python
+c_brake_any = (
+    sbp == '制动有效'       # 制动踏板信号
+    OR gear ∈ GEAR_HAS_BRAKE_SET    # gear含有制动力
+    OR mstate ∈ {'发电'}            # 电机处于发电状态（回收）
+    OR gear ∈ GEAR_REGEN_TYPICAL_SET  # D+无驱+有制典型回收档位
+)
+```
+
+#### 详细工况标签（scene_detail，20+类）
+
+| 大类 | 细分 |
+|---|---|
+| 快充 | fast_charge_normal / fast_charge_overtemp / fast_charge_tail / fast_charge_full_soc |
+| 慢充 | slow_charge_normal / slow_charge_grey_zone / slow_charge_tail / slow_charge_full_soc |
+| 行驶 | drive_normal / drive_low_soc / drive_critical_low_soc / drive_heavy_load / drive_high_speed / drive_very_high_speed / drive_dual_motor / drive_creep |
+| 制动回收 | regen_combined_brake / regen_pure_recovery / regen_coasting / regen_mech_brake_only |
+| 静置 | rest_on_p_gear / rest_on_d_gear / rest_off_normal / rest_off_abnormal |
+
+#### 充电阶段（charge_stage）
+
+```
+pre_charge    SOC < 20%
+bulk_charge   20% ≤ SOC < 80%
+absorption    80% ≤ SOC < 95%
+float_charge  SOC ≥ 95%
+not_charging  非充电工况
+```
+
+#### 风险标记（flag_*，int8）
+
+| 标记名 | 触发条件 |
+|---|---|
+| flag_low_soc_high_discharge | SOC<20% 且 tbc>150A |
+| flag_critical_low_soc_drive | 行驶中 SOC<10% |
+| flag_charge_tail | 充电中 SOC≥95% |
+| flag_full_charge | 充电中 SOC≥98% |
+| flag_fast_charge_overtemp | 快充中 maxt>40°C |
+| flag_regen_braking | 制动回收中 |
+| flag_mech_brake_only | 踩刹车但电机无发电（能量未回收） |
+| flag_high_speed_high_discharge | speed>100 且 tbc>150A |
+| flag_critical_off_discharge | 熄火状态 tbc>10A |
+| flag_rest_on_abnormal_current | 上电静置 \|tbc\|>5A |
+| flag_dcdc_working | DC-DC转换器工作中 |
+| flag_grey_charge_zone | 充电功率在7~10kW灰色区间 |
+| flag_charge_done_state | cstate=充电完成状态停留 |
+| flag_overcharge_risk | 充电完成后仍有负值电流 |
+
+---
+
+### L2a — 电压风险（voltage_risk.py）
+
+**输入**：单辆车全量记录（含scene_tag）
+**输出**：`volt_risk_score`（0~1）
+
+#### 算法细节
+
+```
+1. 单体过压检测
+   maxbuv > 4.25V → 逐条标记
+   连续3条以上 → 严重事件
+
+2. 单体欠压检测
+   minbuv < 2.80V → 逐条标记
+
+3. 压差告警
+   (maxbuv - minbuv) > 0.30V → 告警
+   (maxbuv - minbuv) > 0.15V → 预警
+
+4. 充电末段压差
+   float_charge阶段 且 压差 > 0.20V → 充电异常
+
+5. 固定单体异常
+   maxvbn（最高电压单体编号）连续出现同一编号≥3次 → 疑似固定短板
+
+6. 电压趋势
+   滚动窗口10条，检测持续下降趋势
+
+评分公式：
+volt_risk_score = weighted_sum(各子项得分) clip(0,1)
+权重：过压0.25 / 欠压0.20 / 压差大0.25 / 充电末段0.15 / 固定异常0.15
+```
+
+---
+
+### L2b — 温度风险（temperature_risk.py）
+
+**输入**：单辆车全量记录
+**输出**：`temp_risk_score`（0~1）
+
+#### 算法细节
+
+```
+1. 最高温度超限
+   maxt > 45°C → 严重
+   maxt > 40°C → 预警
+
+2. 最低温度超限
+   mint < 0°C → 低温风险
+
+3. 温差过大
+   (maxt - mint) > 8°C → 告警
+   (maxt - mint) > 5°C → 预警
+
+4. 温升速率
+   滚动窗口10条，计算温度变化率
+   >2°C/采样 → 异常温升
+
+5. 静置温升
+   rest_on/rest_off工况中 maxt上升>3°C → 异常
+
+6. 充电温升过快
+   充电中温升速率 > 1.5°C/采样 → 异常
+
+7. 固定热点探针
+   maxtn（最高温探针编号）固定≥3次 → 局部过热
+
+评分公式：
+temp_risk_score = weighted_sum clip(0,1)
+权重：高温0.30 / 温差0.25 / 温升速率0.20 / 静置温升0.10 / 低温0.10 / 固定热点0.05
+```
+
+---
+
+### L2c — 充电行为风险（charge_risk.py）
+
+**输入**：单辆车全量记录（调用get_charge_events提取充电事件）
+**输出**：`charge_risk_score`（0~1）
+
+#### 算法细节
+
+```
+充电事件提取：
+  按 vin + event_id 分组，charge_type ∈ {fast_charge, slow_charge}
+
+单事件风险指标：
+  r_low_soc_start      soc_start < 15%（深放后快充，极化大）
+  r_full_charge        soc_end ≥ 98%（满充损伤）
+  r_high_soc_continued SOC起止均≥90%（高SOC区间充电）
+  r_overpower          充电功率超额（快充>15kW/慢充>8.4kW）
+  r_overtemp           充电中 maxt > 40°C
+  r_volt_diff          充电末段压差 > 0.20V
+  r_grey_zone          功率在7~10kW灰色区间
+
+快充权重系数：1.4（快充风险高于慢充）
+慢充权重系数：1.0
+
+VIN级聚合：
+  charge_risk_base = risk_mean×0.5 + risk_max×0.5
+  high_soc_park_risk = 高SOC停置记录数/100（上限0.15分）
+  charge_done_risk   = 充电完成停留记录数/100（上限0.30分）
+
+最终：
+  charge_risk_score = base×0.75 + park×0.15 + done×0.10
+```
+
+---
+
+### L2d — 负荷风险（load_risk.py）
+
+**输入**：单辆车全量记录
+**输出**：`load_risk_score`（0~1）
+
+#### 算法细节
+
+```
+1. 大电流放电
+   tbc > 150A → 高负荷
+   tbc > 100A → 中负荷
+
+2. 低SOC高负荷行驶
+   SOC<20% 且 tbc>100A → 联合风险
+
+3. 高速大电流
+   speed>100km/h 且 tbc>150A
+
+4. 电机温度
+   mtemp_0/1 > 80°C → 电机过热
+
+5. 控制器温度
+   mctemp_0/1 > 75°C → 控制器过热
+
+6. 急加速/急减速（若含ad字段）
+   ad > 3 m/s² → 急加速
+   ad < -3 m/s² → 急减速
+
+评分：各项加权求和 clip(0,1)
+```
+
+---
+
+### L2e — 故障风险（fault_risk.py）
+
+**输入**：单辆车全量记录
+**输出**：`fault_risk_score`（0~1）
+
+#### 算法细节
+
+```
+1. 绝缘电阻
+   inre < 100Ω  → 危险（直接高分）
+   inre < 500Ω  → 预警
+   inre持续下降斜率 < -50Ω/条 → 趋势恶化
+
+2. 告警等级
+   halvl = 2（二级告警） → 严重故障
+   halvl = 1（一级告警） → 一般故障
+
+3. 故障码数量
+   aobf（电池故障码）> 3 → 多故障并发
+
+4. 多系统同时故障
+   {aobf, aodmf, aoef, aoof} 中同时>0的数量 ≥ 2 → 系统级风险
+
+5. 熄火异常放电
+   vstate=熄火 且 tbc>10A → 暗电流异常
+
+评分：绝缘权重最高（0.40），告警等级（0.30），故障码（0.20），多系统（0.10）
+```
+
+---
+
+### L3 — 综合融合（fusion.py / pipeline.py内）
+
+```python
+# 加权融合
+final_score = sum(score_i × weight_i)
+# 权重: 电压0.30 + 温度0.25 + 充电0.15 + 负荷0.15 + 故障0.15 = 1.00
+
+# 规则升档（任意子项 > 0.75 → 强制升到 Medium 以上）
+if any(sub_score > 0.75):
+    final_score = max(final_score, 0.31)
+
+# 等级判定
+Low:      score ≤ 0.30
+Medium:   0.30 < score ≤ 0.60
+High:     0.60 < score ≤ 1.00
+Critical: 规则升档后超过1.00（极端情况）
+```
+
+---
+
+## 六、Pipeline 执行流程
+
+```
+main.py
+  └── BatteryRiskPipeline(data_path, vin_batch_size=2)
+        │
+        ├── _get_all_vins()           只读vin列，获取64辆车列表
+        │
+        └── for batch in batches:     每批N辆
+              ├── _load_batch()       pyarrow过滤读取，只加载该批数据
+              │
+              └── for vin in batch:
+                    ├── identify_operating_scenes()  L1工况识别
+                    ├── voltage_risk_score()          L2a
+                    ├── temperature_risk_score()      L2b
+                    ├── calc_charge_risk()            L2c
+                    ├── load_risk_score()             L2d
+                    ├── fault_risk_score()            L2e
+                    ├── 加权融合 + 规则升档           L3
+                    └── 返回vin级别结果字典（~30字段）
+              │
+              └── 释放batch内存(gc.collect)
+        │
+        └── _finalize()
+              ├── 合并所有结果为DataFrame
+              ├── 保存 output/risk_results.csv
+              └── 打印汇总统计
+```
+
+---
+
+## 七、最终输出格式（risk_results.csv）
+
+| 字段 | 说明 |
+|---|---|
+| `vin` | 车辆ID |
+| `record_count` | 该车总记录数 |
+| `final_risk_score` | 综合风险分（0~1） |
+| `risk_level` | 英文等级（Low/Medium/High/Critical） |
+| `risk_level_cn` | 中文等级（低/中/高/极高风险） |
+| `risk_level_code` | 数字编码（0/1/2/3，用于排序） |
+| `action` | 处置建议 |
+| `rule_escalated` | 是否触发规则升档（0/1） |
+| `volt_risk_score` | 电压子分（0~1） |
+| `temp_risk_score` | 温度子分（0~1） |
+| `charge_risk_score` | 充电子分（0~1） |
+| `load_risk_score` | 负荷子分（0~1） |
+| `fault_risk_score` | 故障子分（0~1） |
+
+---
+
+## 八、内存管理策略
+
+### 问题根源
+73GB数据全量加载后，`df.copy()`触发pandas内部block合并，申请额外**4.14GB连续内存**失败。
+
+### 解决方案
+```
+1. Pipeline 不接受外部 df（不做 copy）
+   → 直接从文件按 VIN 批次读取
+
+2. pyarrow 过滤读取（filters参数）
+   → 只加载指定 VIN 的数据，单批约 2~5GB
+
+3. 每批处理完立即 del + gc.collect()
+
+4. 结果只保留 VIN 级别汇总（~30字段×64行，KB级别）
+
+5. vin_batch_size 配置建议：
+   8GB  内存 → batch_size=1
+   16GB 内存 → batch_size=2
+   32GB 内存 → batch_size=4
+```
+
+---
+
+## 九、已知问题与解决记录
+
+| 问题 | 原因 | 解决方案 |
+|---|---|---|
+| `ImportError: DTYPE_DOWNCAST_MAP` | config.py未定义 | 加入config.py |
+| `ImportError: GEAR_HAS_DRIVE_SET` | gear集合常量缺失 | 补全12种×所有维度集合 |
+| `ImportError: GEAR_DEFAULT` | 默认值常量缺失 | 加入`GEAR_DEFAULT='无驱动力无制动力停车P挡'` |
+| `ArrayMemoryError: 4.14GiB` | df.copy()触发block合并 | Pipeline改为按VIN批次流式处理 |
+| gear字段用数字编码 | 数据库实际存中文字符串 | 全部改为实际字符串值 |
+| cstate用`1/2/3` | 实际为中文字符串 | 全部改为实际字符串值 |
+
+---
+
+## 十、后续开发计划
+
+```
+□ visualize.py    — 各维度风险可视化（雷达图/趋势图/热力图）
+□ report.py       — 自动生成车辆风险报告（PDF/HTML）
+□ 在线预测模式    — 实时流数据接入（Kafka/Flink）
+□ 模型融合        — 在规则基础上叠加ML模型（IsolationForest/XGBoost）
+□ 历史趋势分析    — 按周/月统计风险变化趋势
+```
