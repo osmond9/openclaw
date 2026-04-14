@@ -1,178 +1,293 @@
-# 动力电池风险识别系统 v1.0 — 完整技术档案
+# 动力电池风险识别系统 v1.0 — 全量代码档案
 
 ---
 
-## 一、项目背景与目标
-
-**业务场景**：对新能源车队（64辆）的动力电池进行实时/离线风险评估，识别电压异常、温度异常、充电行为风险、负荷风险、故障风险，输出每辆车的综合风险等级与处置建议。
-
-**数据规模**：
-- 总记录数：**37,086,196 条**
-- 车辆数量：**64 辆**
-- 原始内存：**73 GB**（全量加载）
-- 数据格式：`.parquet`（列式存储，支持按VIN过滤读取）
-
----
-
-## 二、项目结构
+# 📁 项目结构总览
 
 ```
 HV_Leakage/
-│
-├── main.py                          # 主入口（内存安全版）
-│
-├── data/
-│   ├── raw/
-│   │   ├── normal/                  # 正常车辆原始数据
-│   │   └── risk/                    # 风险车辆原始数据
-│   ├── labels/
-│   │   └── vehicle_labels.csv       # 车辆标签（vin + risk_label）
-│   └── labeled/
-│       └── all_vehicles_labeled.parquet  # 预处理后打标数据（主输入）
-│
-├── output/
-│   ├── risk_results.csv             # 最终风险评估结果（主输出）
-│   └── figures/                     # 可视化图表
-│
-└── battery_risk/                    # 核心包
-    ├── __init__.py
-    ├── config.py                    # 全局常量配置（唯一真相来源）
-    ├── pipeline.py                  # 主流程调度（内存安全，按VIN批次）
-    ├── utils.py                     # 通用工具函数
-    │
-    └── modules/
-        ├── __init__.py
-        ├── operating_scene.py       # L1 工况识别
-        ├── voltage_risk.py          # L2 电压风险评分
-        ├── temperature_risk.py      # L2 温度风险评分
-        ├── charge_risk.py           # L2 充电行为风险评分
-        ├── load_risk.py             # L2 负荷风险评分
-        ├── fault_risk.py            # L2 故障风险评分
-        └── fusion.py                # L3 综合融合
+├── main.py
+├── battery_risk/
+│   ├── __init__.py
+│   ├── config.py
+│   ├── pipeline.py
+│   ├── utils.py
+│   └── modules/
+│       ├── __init__.py
+│       ├── operating_scene.py
+│       ├── voltage_risk.py
+│       ├── temperature_risk.py
+│       ├── charge_risk.py
+│       ├── load_risk.py
+│       ├── fault_risk.py
+│       └── fusion.py
 ```
 
 ---
 
-## 三、数据字段说明
-
-### 核心字段（原始值为中文字符串）
-
-| 字段 | 类型 | 原始值（实际字符串） | 含义 |
-|---|---|---|---|
-| `vin` | str | 车辆唯一编码 | 车辆ID |
-| `date` | str/date | YYYY-MM-DD | 日期 |
-| `time` | str/time | HH:MM:SS | 时间 |
-| `vstate` | str | `'熄火'` / `'车辆启动状态'` | 车辆状态 |
-| `cstate` | str | `'未充电状态'`/`'停车充电'`/`'充电完成'`/`'行驶充电'` | 充电状态 |
-| `dcstate` | str | `'断开'` / `'工作'` | DC-DC转换器状态 |
-| `gear` | str | 12种组合（见下方） | 档位+驱动力+制动力 |
-| `mstate_0/1` | str | `'关闭状态'`/`'耗电'`/`'发电'` | 电机状态 |
-| `sbp` | str | `'制动关'` / `'制动有效'` | 制动踏板信号 |
-| `rstate` | str | `'纯电'` | 行驶模式 |
-
-### gear字段完整12种原始值
-
-```
-【有驱动力×无制动力】× 3挡 = 3种
-  有驱动力无制动力倒挡
-  有驱动力无制动力停车P挡
-  有驱动力无制动力自动D挡
-
-【有驱动力×有制动力】× 3挡 = 3种
-  有驱动力有制动力倒挡
-  有驱动力有制动力停车P挡
-  有驱动力有制动力自动D挡
-
-【无驱动力×无制动力】× 3挡 = 3种
-  无驱动力无制动力倒挡
-  无驱动力无制动力停车P挡
-  无驱动力无制动力自动D挡
-
-【无驱动力×有制动力】× 3挡 = 3种
-  无驱动力有制动力倒挡
-  无驱动力有制动力停车P挡
-  无驱动力有制动力自动D挡
-```
-
-### 数值字段
-
-| 字段 | 单位 | 含义 |
-|---|---|---|
-| `speed` | km/h | 车速 |
-| `soc` | % | 电池荷电状态 |
-| `tbc` | A | 总电流（>0放电，<0充电/回收） |
-| `tbv` | V | 总电压 |
-| `maxt`/`mint` | °C | 电池最高/最低温度 |
-| `maxtn`/`mintn` | - | 最高/最低温度探针编号 |
-| `maxbuv`/`minbuv` | V | 单体最高/最低电压 |
-| `maxvbn`/`minvbn` | - | 最高/最低电压单体编号 |
-| `inre` | Ω | 绝缘电阻（正常为高阻>1000Ω） |
-| `halvl` | - | 告警等级（0=无，1=一级，2=二级严重） |
-| `aobf` | - | 电池故障码数量 |
-| `aodmf` | - | 驱动电机故障码 |
-| `aoef` | - | 发动机故障码 |
-| `aoof` | - | 其他故障码 |
-| `ad` | - | 加速度 |
-| `mtor_0/1` | Nm | 电机转矩 |
-| `mtemp_0/1` | °C | 电机温度 |
-| `mctemp_0/1` | °C | 电机控制器温度 |
-| `mcinv_0/1` | V | 电机控制器输入电压 |
-| `mcdbc_0/1` | A | 电机控制器直流电流 |
-| `mil` | - | 里程 |
-
----
-
-## 四、config.py 核心常量速查
-
-### 字段实际值常量
+# 📄 main.py
 
 ```python
-# vstate
-VSTATE_OFF = '熄火'
-VSTATE_ON  = '车辆启动状态'
+"""
+main.py
+动力电池风险识别系统 v1.0 主入口
+内存安全版：不在外部加载全量数据，由Pipeline内部按VIN批次处理
+"""
 
-# cstate
+import sys
+import time
+import warnings
+warnings.filterwarnings('ignore')
+
+from battery_risk.pipeline import BatteryRiskPipeline
+from battery_risk.config import (
+    LABELED_DATA_PATH,
+    OUTPUT_RISK_PATH,
+)
+
+
+def main():
+    print("=" * 60)
+    print("  动力电池风险识别系统  v1.0")
+    print("=" * 60)
+
+    t0 = time.time()
+
+    # Pipeline 内部按VIN批次读取，不做全量加载
+    # vin_batch_size 根据可用内存调整：
+    #   8GB  → 1,  16GB → 2,  32GB → 4,  64GB → 8
+    pipeline = BatteryRiskPipeline(
+        data_path      = LABELED_DATA_PATH,
+        output_path    = OUTPUT_RISK_PATH,
+        vin_batch_size = 2,
+        verbose        = True,
+    )
+
+    result_df = pipeline.run()
+
+    elapsed = time.time() - t0
+    print(f"\n[INFO] 全部完成，耗时 {elapsed/60:.1f} 分钟")
+    print(f"[INFO] 结果已保存至: {OUTPUT_RISK_PATH}")
+    print(f"\n{'='*60}")
+    print("  风险等级分布")
+    print(f"{'='*60}")
+
+    if result_df is not None and not result_df.empty:
+        dist = result_df['risk_level_cn'].value_counts()
+        for level, cnt in dist.items():
+            pct = cnt / len(result_df) * 100
+            print(f"  {level:<10} {cnt:>4} 辆  ({pct:.1f}%)")
+        print(f"\n  平均综合风险分: "
+              f"{result_df['final_risk_score'].mean():.4f}")
+        print(f"  最高综合风险分: "
+              f"{result_df['final_risk_score'].max():.4f}")
+
+        # 打印高风险车辆
+        high_risk = result_df[
+            result_df['risk_level_code'] >= 2
+        ].sort_values('final_risk_score', ascending=False)
+        if not high_risk.empty:
+            print(f"\n[警告] 发现 {len(high_risk)} 辆高风险/极高风险车辆:")
+            for _, row in high_risk.iterrows():
+                print(f"  VIN={row['vin']:<20} "
+                      f"分={row['final_risk_score']:.4f} "
+                      f"等级={row['risk_level_cn']}")
+
+    print("=" * 60)
+    return result_df
+
+
+if __name__ == '__main__':
+    result = main()
+    sys.exit(0)
+```
+
+---
+
+# 📄 battery_risk/\_\_init\_\_.py
+
+```python
+"""
+battery_risk/__init__.py
+"""
+__version__ = '1.0.0'
+__author__  = 'Battery Risk Team'
+```
+
+---
+
+# 📄 battery_risk/config.py
+
+```python
+"""
+battery_risk/config.py
+═══════════════════════════════════════════════════════════════
+全局配置终极版 —— 所有模块统一从此处导入，禁止在其他文件硬编码阈值
+
+电流符号约定（全局统一）：
+  tbc > 0  → 放电（电机驱动耗电）
+  tbc < 0  → 充电 或 制动回收（能量回收）
+  tbc ≈ 0  → 静置 / 空载（|tbc| < 3A）
+
+充电类型区分（用功率）：
+  ≤ 7kW  → 慢充
+  > 10kW → 快充
+  7~10kW → 灰色区间（按慢充处理，额外标记）
+
+字段实际值说明（均为中文字符串）：
+  vstate : '车辆启动状态' | '熄火'
+  cstate : '未充电状态' | '停车充电' | '充电完成' | '行驶充电'
+  dcstate: '断开' | '工作'
+  gear   : 12种组合文本
+  mstate : '耗电' | '发电' | '关闭状态'
+  sbp    : '制动关' | '制动有效'
+  rstate : '纯电'
+"""
+
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  一、路径配置                                                ║
+# ╚══════════════════════════════════════════════════════════════╝
+NORMAL_DATA_DIR   = 'data/raw/normal/'
+RISK_DATA_DIR     = 'data/raw/risk/'
+LABEL_PATH        = 'data/labels/vehicle_labels.csv'
+DATA_LABELS_PATH  = 'data/labels/vehicle_labels.csv'
+LABELED_DATA_PATH = 'data/labeled/all_vehicles_labeled.parquet'
+OUTPUT_RISK_PATH  = 'output/risk_results.csv'
+OUTPUT_PATH       = 'output/risk_results.csv'
+FIGURE_DIR        = 'output/figures'
+
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  二、内存与分块                                              ║
+# ╚══════════════════════════════════════════════════════════════╝
+CHUNK_SIZE = 500_000
+
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  三、vstate 字段原始值                                       ║
+# ╚══════════════════════════════════════════════════════════════╝
+VSTATE_ON  = '车辆启动状态'
+VSTATE_OFF = '熄火'
+VSTATE_SET = {VSTATE_ON, VSTATE_OFF}
+
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  四、cstate 字段原始值                                       ║
+# ╚══════════════════════════════════════════════════════════════╝
 CSTATE_NO_CHARGE    = '未充电状态'
 CSTATE_STOP_CHARGE  = '停车充电'
 CSTATE_CHARGE_DONE  = '充电完成'
 CSTATE_DRIVE_CHARGE = '行驶充电'
+CSTATE_PARK_CHARGE  = '停车充电'          # 兼容别名
+
 CSTATE_PARK_CHARGE_SET = {'停车充电', '充电完成'}
 CSTATE_CHARGING_SET    = {'停车充电', '充电完成', '行驶充电'}
 
-# dcstate
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  五、dcstate 字段原始值                                      ║
+# ╚══════════════════════════════════════════════════════════════╝
 DCSTATE_DISCONNECT = '断开'
 DCSTATE_WORK       = '工作'
+DCSTATE_SET        = {DCSTATE_DISCONNECT, DCSTATE_WORK}
 
-# gear（集合）
-GEAR_HAS_DRIVE_SET     # 6种（有驱动力）
-GEAR_NO_DRIVE_SET      # 6种（无驱动力）
-GEAR_HAS_BRAKE_SET     # 6种（有制动力）
-GEAR_NO_BRAKE_SET      # 6种（无制动力）
-GEAR_P_SET             # 4种（P挡）
-GEAR_D_SET             # 4种（D挡）
-GEAR_R_SET             # 4种（R挡）
-GEAR_DRIVE_SET         # 1种（D+有驱+无制=正常行驶）
-GEAR_COAST_SET         # 1种（D+无驱+无制=滑行）
-GEAR_REGEN_TYPICAL_SET # 1种（D+无驱+有制=制动回收典型）
-GEAR_STATIC_SET        # 1种（P+无驱+无制=纯停车）
-GEAR_MOVING_SET        # D+R 共8种
-GEAR_ALL_VALUES        # 全部12种
-GEAR_DEFAULT           = '无驱动力无制动力停车P挡'
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  六、gear 字段原始值（12种组合）                             ║
+# ╚══════════════════════════════════════════════════════════════╝
 
-# mstate
-MSTATE_OFF      = '关闭状态'
-MSTATE_CONSUME  = '耗电'
-MSTATE_GEN      = '发电'
+GEAR_HAS_DRIVE_SET = {
+    '有驱动力无制动力倒挡',
+    '有驱动力无制动力停车P挡',
+    '有驱动力无制动力自动D挡',
+    '有驱动力有制动力倒挡',
+    '有驱动力有制动力停车P挡',
+    '有驱动力有制动力自动D挡',
+}
 
-# sbp
-SBP_INACTIVE = '制动关'
-SBP_ACTIVE   = '制动有效'
-```
+GEAR_NO_DRIVE_SET = {
+    '无驱动力无制动力倒挡',
+    '无驱动力无制动力停车P挡',
+    '无驱动力无制动力自动D挡',
+    '无驱动力有制动力倒挡',
+    '无驱动力有制动力停车P挡',
+    '无驱动力有制动力自动D挡',
+}
 
-### 关键阈值
+GEAR_HAS_BRAKE_SET = {
+    '无驱动力有制动力倒挡',
+    '无驱动力有制动力停车P挡',
+    '无驱动力有制动力自动D挡',
+    '有驱动力有制动力倒挡',
+    '有驱动力有制动力停车P挡',
+    '有驱动力有制动力自动D挡',
+}
 
-```python
-# 速度 (km/h)
+GEAR_NO_BRAKE_SET = {
+    '无驱动力无制动力倒挡',
+    '无驱动力无制动力停车P挡',
+    '无驱动力无制动力自动D挡',
+    '有驱动力无制动力倒挡',
+    '有驱动力无制动力停车P挡',
+    '有驱动力无制动力自动D挡',
+}
+
+GEAR_P_SET = {
+    '无驱动力无制动力停车P挡',
+    '无驱动力有制动力停车P挡',
+    '有驱动力无制动力停车P挡',
+    '有驱动力有制动力停车P挡',
+}
+
+GEAR_D_SET = {
+    '无驱动力无制动力自动D挡',
+    '无驱动力有制动力自动D挡',
+    '有驱动力无制动力自动D挡',
+    '有驱动力有制动力自动D挡',
+}
+
+GEAR_R_SET = {
+    '无驱动力无制动力倒挡',
+    '无驱动力有制动力倒挡',
+    '有驱动力无制动力倒挡',
+    '有驱动力有制动力倒挡',
+}
+
+GEAR_DRIVE_SET         = {'有驱动力无制动力自动D挡'}
+GEAR_COAST_SET         = {'无驱动力无制动力自动D挡'}
+GEAR_REGEN_TYPICAL_SET = {'无驱动力有制动力自动D挡'}
+GEAR_STATIC_SET        = {'无驱动力无制动力停车P挡'}
+GEAR_MOVING_SET        = GEAR_D_SET | GEAR_R_SET
+GEAR_BRAKE_SET         = GEAR_HAS_BRAKE_SET
+GEAR_ALL_VALUES        = GEAR_HAS_DRIVE_SET | GEAR_NO_DRIVE_SET
+
+GEAR_DEFAULT      = '无驱动力无制动力停车P挡'
+GEAR_ACTIVE_SET   = GEAR_HAS_DRIVE_SET    # 兼容别名
+GEAR_BRAKE_ACTIVE = GEAR_HAS_BRAKE_SET    # 兼容别名
+
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  七、mstate 字段原始值                                       ║
+# ╚══════════════════════════════════════════════════════════════╝
+MSTATE_CONSUME   = '耗电'
+MSTATE_GEN       = '发电'
+MSTATE_OFF       = '关闭状态'
+MSTATE_GENERATE  = '发电'      # 兼容别名
+MSTATE_DISCHARGE = '耗电'      # 兼容别名
+MSTATE_GENERATING_SET = {MSTATE_GEN}
+MSTATE_CONSUMING_SET  = {MSTATE_CONSUME}
+
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  八、sbp 字段原始值                                          ║
+# ╚══════════════════════════════════════════════════════════════╝
+SBP_INACTIVE     = '制动关'
+SBP_ACTIVE       = '制动有效'
+SBP_BRAKE_ACTIVE = '制动有效'   # 兼容别名
+SBP_SET          = {SBP_INACTIVE, SBP_ACTIVE}
+
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  九、rstate 字段原始值                                       ║
+# ╚══════════════════════════════════════════════════════════════╝
+RSTATE_EV  = '纯电'
+RSTATE_SET = {'纯电'}
+
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  十、速度阈值 (km/h)                                         ║
+# ╚══════════════════════════════════════════════════════════════╝
 SPEED_STATIC    = 2.0
 SPEED_CREEP     = 5.0
 SPEED_LOW       = 20.0
@@ -180,47 +295,116 @@ SPEED_MEDIUM    = 60.0
 SPEED_HIGH      = 100.0
 SPEED_VERY_HIGH = 120.0
 
-# SOC (%)
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  十一、SOC 阈值 (%)                                          ║
+# ╚══════════════════════════════════════════════════════════════╝
 SOC_CRITICAL_LOW = 10.0
 SOC_LOW_ZONE     = 20.0
+SOC_LOWER_ZONE   = 30.0
+SOC_UPPER_ZONE   = 80.0
 SOC_HIGH_ZONE    = 90.0
 SOC_FULL_ZONE    = 98.0
+SOC_FULL         = 98.0
 
-# 电流 (A)
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  十二、电流阈值 (A)                                          ║
+# ╚══════════════════════════════════════════════════════════════╝
 MIN_CHARGE_CURRENT_ABS    = 3.0
 DISCHARGE_CURRENT_HIGH    = 150.0
 DISCHARGE_CURRENT_WARNING = 100.0
+FAST_CHARGE_CURRENT       = 80.0
+CURRENT_CHARGE_MIN        = 3.0
 
-# 充电功率 (W)
-SLOW_CHARGE_POWER_MAX  = 7000.0    # 慢充上限
-FAST_CHARGE_POWER_MIN  = 10000.0   # 快充下限
-GREY_CHARGE_POWER_LOW  = 7000.0    # 灰色区间下限
-GREY_CHARGE_POWER_HIGH = 10000.0   # 灰色区间上限
-REGEN_SPEED_MIN        = 5.0       # 制动回收最低车速
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  十三、充电功率阈值 (W)                                      ║
+# ╚══════════════════════════════════════════════════════════════╝
+SLOW_CHARGE_POWER_MAX  = 7000.0
+FAST_CHARGE_POWER_MIN  = 10000.0
+GREY_CHARGE_POWER_LOW  = 7000.0
+GREY_CHARGE_POWER_HIGH = 10000.0
 
-# 电压 (V)
-VOLT_MAX_THRESHOLD   = 4.25
-VOLT_MIN_THRESHOLD   = 2.80
-VOLT_DIFF_THRESHOLD  = 0.30
-VOLT_DIFF_WARNING    = 0.15
-VOLT_DIFF_CHARGE_END = 0.20
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  十四、制动回收阈值                                          ║
+# ╚══════════════════════════════════════════════════════════════╝
+REGEN_SPEED_MIN       = 5.0
+REGEN_CURRENT_MAX_ABS = 80.0
 
-# 温度 (°C)
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  十五、电压阈值 (V)                                          ║
+# ╚══════════════════════════════════════════════════════════════╝
+VOLT_MAX_THRESHOLD      = 4.25
+VOLT_MIN_THRESHOLD      = 2.80
+VOLT_DIFF_ALARM         = 0.30
+VOLT_DIFF_WARNING       = 0.15
+VOLT_DIFF_THRESHOLD     = 0.30
+VOLT_DIFF_CHARGE_END    = 0.20
+CHARGE_END_VOLT_DIFF    = 0.20
+VOLT_WINDOW             = 20
+VOLT_WINDOW_SIZE        = 20
+VOLT_TREND_WINDOW       = 30
+ABNORMAL_CELL_REPEAT_TH = 3
+
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  十六、温度阈值 (°C)                                         ║
+# ╚══════════════════════════════════════════════════════════════╝
 TEMP_MAX_THRESHOLD       = 45.0
+TEMP_MAX_ALARM           = 50.0
+TEMP_MAX_WARNING         = 40.0
 TEMP_HIGH_WARNING        = 40.0
+TEMP_MIN_THRESHOLD       = 0.0
+TEMP_MIN_COLD            = 0.0
+TEMP_DIFF_ALARM          = 10.0
+TEMP_DIFF_WARNING        = 5.0
 TEMP_DIFF_THRESHOLD      = 8.0
+TEMP_RISE_RATE_ALARM     = 2.0
+TEMP_RISE_RATE_WARN      = 1.0
 TEMP_RISE_RATE_THRESHOLD = 2.0
+TEMP_WINDOW              = 20
+TEMP_WINDOW_SIZE         = 20
+HOT_PROBE_REPEAT_TH      = 3
 STATIC_TEMP_RISE_TH      = 3.0
+CHARGE_TEMP_RISE_RATE    = 1.5
+CHARGE_TEMP_MAX          = 40.0
 
-# 故障
-FAULT_INSULATION_LOW  = 100.0   # Ω
-FAULT_INSULATION_WARN = 500.0   # Ω
-HALVL_SERIOUS         = 2
-```
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  十七、充电行为阈值                                          ║
+# ╚══════════════════════════════════════════════════════════════╝
+CHARGE_SOC_START_LOW    = 15.0
+CHARGE_SOC_END_HIGH     = 98.0
+FULL_CHARGE_SOC         = 98.0
+HIGH_SOC_RESIDENCE      = 60
+FAST_CHARGE_CNT_7D_TH   = 5
+CHARGE_INTERRUPT_TH     = 3
 
-### 融合权重
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  十八、负荷阈值                                              ║
+# ╚══════════════════════════════════════════════════════════════╝
+LOAD_CURRENT_HIGH            = 150.0
+LOAD_DISCHARGE_CURRENT_HIGH  = 150.0
+LOAD_POWER_HIGH_KW           = 80.0
+LOAD_DISCHARGE_POWER_HIGH    = 80000.0
+LOAD_SOC_LOW                 = 20.0
+LOAD_SPEED_HIGH              = 100.0
+MOTOR_TEMP_HIGH              = 80.0
+MOTOR_CTRL_TEMP_HIGH         = 75.0
+CONTROLLER_TEMP_HIGH         = 75.0
+HARD_ACC_THRESHOLD           = 3.0
+HARD_BRAKE_THRESHOLD         = -3.0
 
-```python
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  十九、故障/绝缘阈值                                         ║
+# ╚══════════════════════════════════════════════════════════════╝
+FAULT_INSULATION_LOW   = 100.0
+FAULT_INSULATION_WARN  = 500.0
+FAULT_INSULATION_SLOPE = -50.0
+HALVL_SERIOUS          = 2
+BATTERY_FAULT_CNT_TH   = 3
+MULTI_SYSTEM_FAULT_TH  = 2
+FAULT_CODE_WEIGHT      = 1.0
+
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  二十、融合权重与风险等级                                    ║
+# ╚══════════════════════════════════════════════════════════════╝
 FUSION_WEIGHTS = {
     'volt_risk_score':   0.30,
     'temp_risk_score':   0.25,
@@ -228,393 +412,1974 @@ FUSION_WEIGHTS = {
     'load_risk_score':   0.15,
     'fault_risk_score':  0.15,
 }
-RULE_ESCALATE_THRESHOLD = 0.75   # 任意子项超过此值→强制升档
-```
+RULE_ESCALATE_THRESHOLD = 0.75
 
-### 风险等级
-
-```python
+RISK_LEVEL_THRESHOLDS = [
+    (0.30, 'Low'),
+    (0.60, 'Medium'),
+    (1.00, 'High'),
+    (float('inf'), 'Critical'),
+]
 RISK_LEVEL_MAP = {
-    'Low':      0.30,   # score ≤ 0.30
-    'Medium':   0.60,   # score ≤ 0.60
-    'High':     1.00,   # score ≤ 1.00
-    'Critical': inf,    # score > 1.00（规则升档）
+    'Low':      0.30,
+    'Medium':   0.60,
+    'High':     1.00,
+    'Critical': float('inf'),
 }
-RISK_LEVEL_CN     = {'Low':'低风险','Medium':'中风险','High':'高风险','Critical':'极高风险'}
-RISK_LEVEL_ACTION = {'Low':'正常使用','Medium':'建议监控','High':'定期检查','Critical':'立即停用送检'}
-RISK_LEVEL_CODE   = {'Low':0,'Medium':1,'High':2,'Critical':3}
+RISK_SCORE_BINS   = [0.0, 0.30, 0.60, 1.00, float('inf')]
+RISK_SCORE_LABELS = ['Low', 'Medium', 'High', 'Critical']
+
+RISK_LEVEL_CN = {
+    'Low':      '低风险',
+    'Medium':   '中风险',
+    'High':     '高风险',
+    'Critical': '极高风险',
+}
+RISK_LEVEL_ACTION = {
+    'Low':      '正常使用，无需操作',
+    'Medium':   '建议监控，关注风险变化趋势',
+    'High':     '建议安排定期检查与维护',
+    'Critical': '风险极高，请立即停用并送检',
+}
+RISK_LEVEL_CODE = {
+    'Low':      0,
+    'Medium':   1,
+    'High':     2,
+    'Critical': 3,
+}
+
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  二十一、数据类型降精度映射                                  ║
+# ╚══════════════════════════════════════════════════════════════╝
+DTYPE_DOWNCAST_MAP = {
+    'risk_label': 'int8',   'halvl':    'int8',
+    'aobf':       'int16',  'aodmf':    'int16',
+    'aoef':       'int16',  'aoof':     'int16',
+    'maxvbn':     'int16',  'minvbn':   'int16',
+    'maxtn':      'int8',   'mintn':    'int8',
+    'mavbsn':     'int8',   'mivbsn':   'int8',
+    'matban':     'int8',   'mitban':   'int8',
+    'mnum_0':     'int8',   'mnum_1':   'int8',
+    'speed':      'float32','soc':      'float32',
+    'tbc':        'float32','tbv':      'float32',
+    'maxt':       'float32','mint':     'float32',
+    'maxbuv':     'float32','minbuv':   'float32',
+    'inre':       'float32','ad':       'float32',
+    'mtor_0':     'float32','mtor_1':   'float32',
+    'mtemp_0':    'float32','mtemp_1':  'float32',
+    'mctemp_0':   'float32','mctemp_1': 'float32',
+    'mcinv_0':    'float32','mcinv_1':  'float32',
+    'mcdbc_0':    'float32','mcdbc_1':  'float32',
+    'mrs_0':      'float32','mrs_1':    'float32',
+    'mil':        'float32','run_hour': 'float32',
+    'power_kw':   'float32',
+}
+
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  二十二、字段空值填充默认值                                  ║
+# ╚══════════════════════════════════════════════════════════════╝
+FIELD_DEFAULTS = {
+    'vstate':   VSTATE_OFF,
+    'cstate':   CSTATE_NO_CHARGE,
+    'rstate':   '',
+    'dcstate':  DCSTATE_DISCONNECT,
+    'sbp':      SBP_INACTIVE,
+    'mstate_0': MSTATE_OFF,
+    'mstate_1': MSTATE_OFF,
+    'gear':     GEAR_DEFAULT,
+    'speed':    0.0,
+    'tbc':      0.0,
+    'tbv':      0.0,
+    'ad':       0.0,
+    'aobf':     0,
+    'aodmf':    0,
+    'aoef':     0,
+    'aoof':     0,
+    'halvl':    0,
+    'inre':     9999.0,
+}
+
+# ╔══════════════════════════════════════════════════════════════╗
+# ║  二十三、必要字段清单                                        ║
+# ╚══════════════════════════════════════════════════════════════╝
+REQUIRED_COLS_BASE = [
+    'vin', 'date', 'time',
+    'vstate', 'cstate', 'speed', 'soc', 'tbc', 'tbv',
+]
+REQUIRED_COLS_VOLTAGE = [
+    'maxbuv', 'minbuv', 'maxvbn', 'minvbn',
+]
+REQUIRED_COLS_TEMPERATURE = [
+    'maxt', 'mint', 'maxtn', 'mintn',
+]
+REQUIRED_COLS_FAULT = [
+    'inre', 'aobf', 'halvl',
+]
+REQUIRED_COLS_LOAD = [
+    'tbc', 'tbv', 'speed', 'soc',
+]
+REQUIRED_COLS_ALL = list(dict.fromkeys(
+    REQUIRED_COLS_BASE        +
+    REQUIRED_COLS_VOLTAGE     +
+    REQUIRED_COLS_TEMPERATURE +
+    REQUIRED_COLS_FAULT       +
+    REQUIRED_COLS_LOAD
+))
 ```
 
 ---
 
-## 五、算法流程详解
-
-### L1 — 工况识别（operating_scene.py）
-
-**目标**：给每一条记录打上工况标签，为后续风险计算提供分析上下文。
-
-#### 主工况标签（scene_tag，7类）
-
-```
-fast_charge     直流快充（停车+功率>10kW+cstate=停车充电）
-slow_charge     交流慢充（停车+功率≤10kW+cstate=停车充电）
-drive_charge    行驶充电（行驶中+cstate=行驶充电，PHEV/增程）
-regen_braking   制动能量回收（行驶中+tbc<0+任一制动信号）
-drive           正常行驶放电（tbc>0+speed>2km/h）
-rest_on         上电静置（vstate=启动+speed≤2+无充电）
-rest_off        熄火停放（vstate=熄火）
-```
-
-#### 充电类型识别优先级（charge_type）
-
-```
-优先级1: regen_braking  → tbc<0 + speed>5km/h + 制动信号
-优先级2: fast_charge    → tbc<0 + 静止 + 功率>10kW + 停车充电
-优先级3: slow_charge    → tbc<0 + 静止 + 功率≤10kW + 停车充电
-         （含灰色区间7~10kW，单独标记is_grey_charge_zone=1）
-优先级4: drive_charge   → tbc<0 + 行驶 + cstate=行驶充电
-默认:    no_charge
-```
-
-#### 制动信号综合判断
+# 📄 battery_risk/pipeline.py
 
 ```python
-c_brake_any = (
-    sbp == '制动有效'       # 制动踏板信号
-    OR gear ∈ GEAR_HAS_BRAKE_SET    # gear含有制动力
-    OR mstate ∈ {'发电'}            # 电机处于发电状态（回收）
-    OR gear ∈ GEAR_REGEN_TYPICAL_SET  # D+无驱+有制典型回收档位
+"""
+battery_risk/pipeline.py
+内存安全Pipeline：按VIN批次从parquet读取，逐辆处理，结果聚合后输出
+"""
+
+import gc
+import os
+import time
+import traceback
+
+import numpy as np
+import pandas as pd
+import pyarrow.parquet as pq
+
+from battery_risk.config import (
+    FUSION_WEIGHTS, RULE_ESCALATE_THRESHOLD,
+    RISK_LEVEL_THRESHOLDS, RISK_LEVEL_CN,
+    RISK_LEVEL_ACTION, RISK_LEVEL_CODE,
+    OUTPUT_RISK_PATH, FIGURE_DIR,
 )
+from battery_risk.modules.operating_scene  import identify_operating_scenes
+from battery_risk.modules.voltage_risk     import calc_voltage_risk
+from battery_risk.modules.temperature_risk import calc_temperature_risk
+from battery_risk.modules.charge_risk      import calc_charge_risk
+from battery_risk.modules.load_risk        import calc_load_risk
+from battery_risk.modules.fault_risk       import calc_fault_risk
+
+
+class BatteryRiskPipeline:
+    """
+    动力电池风险评估 Pipeline
+
+    参数：
+        data_path      : parquet文件路径
+        output_path    : 结果CSV输出路径
+        vin_batch_size : 每批处理车辆数（根据内存调整）
+        verbose        : 是否打印详细日志
+    """
+
+    def __init__(
+        self,
+        data_path:      str,
+        output_path:    str  = OUTPUT_RISK_PATH,
+        vin_batch_size: int  = 2,
+        verbose:        bool = True,
+    ):
+        self.data_path      = data_path
+        self.output_path    = output_path
+        self.vin_batch_size = vin_batch_size
+        self.verbose        = verbose
+        self.all_results    = []
+        self.failed_vins    = []
+
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        os.makedirs(FIGURE_DIR, exist_ok=True)
+
+    # ──────────────────────────────────────────────────────────
+    def run(self) -> pd.DataFrame:
+        """主运行入口，返回最终结果DataFrame"""
+        t0    = time.time()
+        vins  = self._get_all_vins()
+        total = len(vins)
+
+        if self.verbose:
+            print(f"[INFO] 共发现 {total} 辆车，"
+                  f"每批处理 {self.vin_batch_size} 辆")
+
+        # 按批次处理
+        batches = [
+            vins[i:i + self.vin_batch_size]
+            for i in range(0, total, self.vin_batch_size)
+        ]
+
+        for b_idx, batch_vins in enumerate(batches):
+            t_batch = time.time()
+            if self.verbose:
+                print(f"\n[INFO] 批次 {b_idx+1}/{len(batches)}: "
+                      f"{batch_vins}")
+
+            try:
+                df_batch = self._load_batch(batch_vins)
+                self._process_batch(df_batch, batch_vins)
+                del df_batch
+                gc.collect()
+            except Exception as e:
+                print(f"[ERROR] 批次 {b_idx+1} 加载失败: {e}")
+                traceback.print_exc()
+                for v in batch_vins:
+                    self.failed_vins.append(v)
+                continue
+
+            elapsed = time.time() - t_batch
+            done    = (b_idx + 1) * self.vin_batch_size
+            if self.verbose:
+                print(f"[INFO] 批次耗时 {elapsed:.1f}s，"
+                      f"累计完成 {min(done,total)}/{total}")
+
+        return self._finalize(time.time() - t0)
+
+    # ──────────────────────────────────────────────────────────
+    def _get_all_vins(self) -> list:
+        """只读vin列，获取全部车辆列表"""
+        pf   = pq.ParquetFile(self.data_path)
+        vins = set()
+        for batch in pf.iter_batches(columns=['vin'], batch_size=500_000):
+            df_tmp = batch.to_pandas()
+            vins.update(df_tmp['vin'].dropna().unique().tolist())
+            del df_tmp
+        vins = sorted(vins)
+        if self.verbose:
+            print(f"[INFO] 扫描完成，共 {len(vins)} 辆车")
+        return vins
+
+    # ──────────────────────────────────────────────────────────
+    def _load_batch(self, batch_vins: list) -> pd.DataFrame:
+        """使用pyarrow filters只加载指定VIN的数据"""
+        filters = [('vin', 'in', batch_vins)]
+        df = pd.read_parquet(
+            self.data_path,
+            filters=filters,
+            engine='pyarrow',
+        )
+        if self.verbose:
+            mem_gb = df.memory_usage(deep=True).sum() / 1024**3
+            print(f"[INFO] 批次加载: {len(df):,} 条, "
+                  f"内存: {mem_gb:.2f} GB")
+        return df
+
+    # ──────────────────────────────────────────────────────────
+    def _process_batch(self, df_batch: pd.DataFrame,
+                       batch_vins: list):
+        """逐辆处理批次内车辆"""
+        for vin in batch_vins:
+            t_vin  = time.time()
+            df_vin = df_batch[df_batch['vin'] == vin].copy()
+
+            if len(df_vin) == 0:
+                print(f"[WARN] VIN={vin} 无数据，跳过")
+                continue
+
+            try:
+                result = self._process_single_vin(vin, df_vin)
+                self.all_results.append(result)
+                elapsed = time.time() - t_vin
+                if self.verbose:
+                    print(f"  ✓ VIN={vin:<20} "
+                          f"{len(df_vin):>8,}条  "
+                          f"综合分={result['final_risk_score']:.4f}  "
+                          f"等级={result['risk_level_cn']}  "
+                          f"耗时={elapsed:.1f}s")
+            except Exception as e:
+                print(f"  ✗ VIN={vin} 处理失败: {e}")
+                traceback.print_exc()
+                self.failed_vins.append(vin)
+            finally:
+                del df_vin
+                gc.collect()
+
+    # ──────────────────────────────────────────────────────────
+    def _process_single_vin(self, vin: str,
+                             df_vin: pd.DataFrame) -> dict:
+        """单辆车完整风险评估流程"""
+
+        # ── L1 工况识别 ──────────────────────────────────────
+        df_vin = identify_operating_scenes(df_vin)
+
+        # ── L2 各维度风险评分 ────────────────────────────────
+        volt_res   = calc_voltage_risk(df_vin)
+        temp_res   = calc_temperature_risk(df_vin)
+        charge_res = calc_charge_risk(df_vin)
+        load_res   = calc_load_risk(df_vin)
+        fault_res  = calc_fault_risk(df_vin)
+
+        # 提取各子分（兼容返回dict或DataFrame）
+        def _get(res, key, default=0.0):
+            if isinstance(res, dict):
+                return float(res.get(key, default))
+            elif isinstance(res, pd.DataFrame) and len(res) > 0:
+                return float(res[key].iloc[0]) if key in res.columns else default
+            return default
+
+        sub_scores = {
+            'volt_risk_score':   _get(volt_res,   'volt_risk_score'),
+            'temp_risk_score':   _get(temp_res,   'temp_risk_score'),
+            'charge_risk_score': _get(charge_res, 'charge_risk_score'),
+            'load_risk_score':   _get(load_res,   'load_risk_score'),
+            'fault_risk_score':  _get(fault_res,  'fault_risk_score'),
+        }
+
+        # ── L3 融合 ──────────────────────────────────────────
+        final_score, level, escalated = self._fuse(sub_scores)
+
+        return {
+            'vin':              vin,
+            'record_count':     len(df_vin),
+            'final_risk_score': round(final_score, 6),
+            'risk_level':       level,
+            'risk_level_cn':    RISK_LEVEL_CN[level],
+            'risk_level_code':  RISK_LEVEL_CODE[level],
+            'action':           RISK_LEVEL_ACTION[level],
+            'rule_escalated':   int(escalated),
+            **{k: round(v, 6) for k, v in sub_scores.items()},
+        }
+
+    # ──────────────────────────────────────────────────────────
+    @staticmethod
+    def _fuse(sub_scores: dict):
+        """
+        L3 加权融合 + 规则升档
+
+        返回：(final_score, level, rule_escalated)
+        """
+        # 加权求和
+        score = sum(
+            sub_scores.get(k, 0.0) * w
+            for k, w in FUSION_WEIGHTS.items()
+        )
+        score = float(np.clip(score, 0.0, 1.0))
+
+        # 规则升档：任意子项超过阈值 → 强制至少Medium
+        rule_escalated = any(
+            v > RULE_ESCALATE_THRESHOLD
+            for v in sub_scores.values()
+        )
+        if rule_escalated and score < 0.31:
+            score = 0.31
+
+        # 等级判定
+        level = 'Low'
+        for threshold, lv in RISK_LEVEL_THRESHOLDS:
+            if score <= threshold:
+                level = lv
+                break
+
+        return score, level, rule_escalated
+
+    # ──────────────────────────────────────────────────────────
+    def _finalize(self, total_elapsed: float) -> pd.DataFrame:
+        """汇总结果，保存CSV，打印统计"""
+        if not self.all_results:
+            print("[ERROR] 无任何结果，请检查数据和代码")
+            return pd.DataFrame()
+
+        result_df = pd.DataFrame(self.all_results)
+        result_df = result_df.sort_values(
+            'final_risk_score', ascending=False
+        ).reset_index(drop=True)
+
+        result_df.to_csv(self.output_path, index=False,
+                         encoding='utf-8-sig')
+
+        if self.verbose:
+            print(f"\n{'='*60}")
+            print(f"[INFO] Pipeline完成，总耗时 "
+                  f"{total_elapsed/60:.1f} 分钟")
+            print(f"[INFO] 成功: {len(self.all_results)} 辆  "
+                  f"失败: {len(self.failed_vins)} 辆")
+            print(f"[INFO] 结果已保存: {self.output_path}")
+            if self.failed_vins:
+                print(f"[WARN] 失败车辆: {self.failed_vins}")
+
+        return result_df
 ```
-
-#### 详细工况标签（scene_detail，20+类）
-
-| 大类 | 细分 |
-|---|---|
-| 快充 | fast_charge_normal / fast_charge_overtemp / fast_charge_tail / fast_charge_full_soc |
-| 慢充 | slow_charge_normal / slow_charge_grey_zone / slow_charge_tail / slow_charge_full_soc |
-| 行驶 | drive_normal / drive_low_soc / drive_critical_low_soc / drive_heavy_load / drive_high_speed / drive_very_high_speed / drive_dual_motor / drive_creep |
-| 制动回收 | regen_combined_brake / regen_pure_recovery / regen_coasting / regen_mech_brake_only |
-| 静置 | rest_on_p_gear / rest_on_d_gear / rest_off_normal / rest_off_abnormal |
-
-#### 充电阶段（charge_stage）
-
-```
-pre_charge    SOC < 20%
-bulk_charge   20% ≤ SOC < 80%
-absorption    80% ≤ SOC < 95%
-float_charge  SOC ≥ 95%
-not_charging  非充电工况
-```
-
-#### 风险标记（flag_*，int8）
-
-| 标记名 | 触发条件 |
-|---|---|
-| flag_low_soc_high_discharge | SOC<20% 且 tbc>150A |
-| flag_critical_low_soc_drive | 行驶中 SOC<10% |
-| flag_charge_tail | 充电中 SOC≥95% |
-| flag_full_charge | 充电中 SOC≥98% |
-| flag_fast_charge_overtemp | 快充中 maxt>40°C |
-| flag_regen_braking | 制动回收中 |
-| flag_mech_brake_only | 踩刹车但电机无发电（能量未回收） |
-| flag_high_speed_high_discharge | speed>100 且 tbc>150A |
-| flag_critical_off_discharge | 熄火状态 tbc>10A |
-| flag_rest_on_abnormal_current | 上电静置 \|tbc\|>5A |
-| flag_dcdc_working | DC-DC转换器工作中 |
-| flag_grey_charge_zone | 充电功率在7~10kW灰色区间 |
-| flag_charge_done_state | cstate=充电完成状态停留 |
-| flag_overcharge_risk | 充电完成后仍有负值电流 |
 
 ---
 
-### L2a — 电压风险（voltage_risk.py）
-
-**输入**：单辆车全量记录（含scene_tag）
-**输出**：`volt_risk_score`（0~1）
-
-#### 算法细节
-
-```
-1. 单体过压检测
-   maxbuv > 4.25V → 逐条标记
-   连续3条以上 → 严重事件
-
-2. 单体欠压检测
-   minbuv < 2.80V → 逐条标记
-
-3. 压差告警
-   (maxbuv - minbuv) > 0.30V → 告警
-   (maxbuv - minbuv) > 0.15V → 预警
-
-4. 充电末段压差
-   float_charge阶段 且 压差 > 0.20V → 充电异常
-
-5. 固定单体异常
-   maxvbn（最高电压单体编号）连续出现同一编号≥3次 → 疑似固定短板
-
-6. 电压趋势
-   滚动窗口10条，检测持续下降趋势
-
-评分公式：
-volt_risk_score = weighted_sum(各子项得分) clip(0,1)
-权重：过压0.25 / 欠压0.20 / 压差大0.25 / 充电末段0.15 / 固定异常0.15
-```
-
----
-
-### L2b — 温度风险（temperature_risk.py）
-
-**输入**：单辆车全量记录
-**输出**：`temp_risk_score`（0~1）
-
-#### 算法细节
-
-```
-1. 最高温度超限
-   maxt > 45°C → 严重
-   maxt > 40°C → 预警
-
-2. 最低温度超限
-   mint < 0°C → 低温风险
-
-3. 温差过大
-   (maxt - mint) > 8°C → 告警
-   (maxt - mint) > 5°C → 预警
-
-4. 温升速率
-   滚动窗口10条，计算温度变化率
-   >2°C/采样 → 异常温升
-
-5. 静置温升
-   rest_on/rest_off工况中 maxt上升>3°C → 异常
-
-6. 充电温升过快
-   充电中温升速率 > 1.5°C/采样 → 异常
-
-7. 固定热点探针
-   maxtn（最高温探针编号）固定≥3次 → 局部过热
-
-评分公式：
-temp_risk_score = weighted_sum clip(0,1)
-权重：高温0.30 / 温差0.25 / 温升速率0.20 / 静置温升0.10 / 低温0.10 / 固定热点0.05
-```
-
----
-
-### L2c — 充电行为风险（charge_risk.py）
-
-**输入**：单辆车全量记录（调用get_charge_events提取充电事件）
-**输出**：`charge_risk_score`（0~1）
-
-#### 算法细节
-
-```
-充电事件提取：
-  按 vin + event_id 分组，charge_type ∈ {fast_charge, slow_charge}
-
-单事件风险指标：
-  r_low_soc_start      soc_start < 15%（深放后快充，极化大）
-  r_full_charge        soc_end ≥ 98%（满充损伤）
-  r_high_soc_continued SOC起止均≥90%（高SOC区间充电）
-  r_overpower          充电功率超额（快充>15kW/慢充>8.4kW）
-  r_overtemp           充电中 maxt > 40°C
-  r_volt_diff          充电末段压差 > 0.20V
-  r_grey_zone          功率在7~10kW灰色区间
-
-快充权重系数：1.4（快充风险高于慢充）
-慢充权重系数：1.0
-
-VIN级聚合：
-  charge_risk_base = risk_mean×0.5 + risk_max×0.5
-  high_soc_park_risk = 高SOC停置记录数/100（上限0.15分）
-  charge_done_risk   = 充电完成停留记录数/100（上限0.30分）
-
-最终：
-  charge_risk_score = base×0.75 + park×0.15 + done×0.10
-```
-
----
-
-### L2d — 负荷风险（load_risk.py）
-
-**输入**：单辆车全量记录
-**输出**：`load_risk_score`（0~1）
-
-#### 算法细节
-
-```
-1. 大电流放电
-   tbc > 150A → 高负荷
-   tbc > 100A → 中负荷
-
-2. 低SOC高负荷行驶
-   SOC<20% 且 tbc>100A → 联合风险
-
-3. 高速大电流
-   speed>100km/h 且 tbc>150A
-
-4. 电机温度
-   mtemp_0/1 > 80°C → 电机过热
-
-5. 控制器温度
-   mctemp_0/1 > 75°C → 控制器过热
-
-6. 急加速/急减速（若含ad字段）
-   ad > 3 m/s² → 急加速
-   ad < -3 m/s² → 急减速
-
-评分：各项加权求和 clip(0,1)
-```
-
----
-
-### L2e — 故障风险（fault_risk.py）
-
-**输入**：单辆车全量记录
-**输出**：`fault_risk_score`（0~1）
-
-#### 算法细节
-
-```
-1. 绝缘电阻
-   inre < 100Ω  → 危险（直接高分）
-   inre < 500Ω  → 预警
-   inre持续下降斜率 < -50Ω/条 → 趋势恶化
-
-2. 告警等级
-   halvl = 2（二级告警） → 严重故障
-   halvl = 1（一级告警） → 一般故障
-
-3. 故障码数量
-   aobf（电池故障码）> 3 → 多故障并发
-
-4. 多系统同时故障
-   {aobf, aodmf, aoef, aoof} 中同时>0的数量 ≥ 2 → 系统级风险
-
-5. 熄火异常放电
-   vstate=熄火 且 tbc>10A → 暗电流异常
-
-评分：绝缘权重最高（0.40），告警等级（0.30），故障码（0.20），多系统（0.10）
-```
-
----
-
-### L3 — 综合融合（fusion.py / pipeline.py内）
+# 📄 battery_risk/utils.py
 
 ```python
-# 加权融合
-final_score = sum(score_i × weight_i)
-# 权重: 电压0.30 + 温度0.25 + 充电0.15 + 负荷0.15 + 故障0.15 = 1.00
+"""
+battery_risk/utils.py
+通用工具函数
+"""
 
-# 规则升档（任意子项 > 0.75 → 强制升到 Medium 以上）
-if any(sub_score > 0.75):
-    final_score = max(final_score, 0.31)
+import numpy as np
+import pandas as pd
 
-# 等级判定
-Low:      score ≤ 0.30
-Medium:   0.30 < score ≤ 0.60
-High:     0.60 < score ≤ 1.00
-Critical: 规则升档后超过1.00（极端情况）
+
+def safe_str_col(df: pd.DataFrame, col: str,
+                 default: str = '') -> pd.Series:
+    """安全获取字符串列，缺失列返回默认值Series"""
+    if col in df.columns:
+        null_ratio = df[col].isnull().mean()
+        if null_ratio > 0.3:
+            print(f"[WARN] 字段'{col}'空值率{null_ratio:.1%}，"
+                  f"用'{default}'填充")
+        return df[col].fillna(default).astype(str).str.strip()
+    print(f"[WARN] 字段'{col}'不存在，全部用'{default}'")
+    return pd.Series(default, index=df.index, dtype=str)
+
+
+def safe_num_col(df: pd.DataFrame, col: str,
+                 default: float = 0.0,
+                 keep_nan: bool = False) -> pd.Series:
+    """安全获取数值列"""
+    if col in df.columns:
+        s = pd.to_numeric(df[col], errors='coerce')
+        return s if keep_nan else s.fillna(default)
+    val = np.nan if keep_nan else default
+    return pd.Series(val, index=df.index, dtype=float)
+
+
+def rolling_slope(series: pd.Series, window: int) -> pd.Series:
+    """滚动线性回归斜率"""
+    def _slope(x):
+        if x.isna().any():
+            return np.nan
+        return np.polyfit(range(len(x)), x, 1)[0]
+    return series.rolling(window, min_periods=window).apply(
+        _slope, raw=False
+    )
+
+
+def ratio_clip(series: pd.Series,
+               scale: float = 1.0,
+               lo: float = 0.0,
+               hi: float = 1.0) -> float:
+    """计算True/非零比例并缩放后截断"""
+    r = float(series.mean()) * scale
+    return float(np.clip(r, lo, hi))
+
+
+def score_merge(*weighted_pairs) -> float:
+    """
+    加权合并多个子分
+    用法：score_merge((score1, w1), (score2, w2), ...)
+    """
+    total_w = sum(w for _, w in weighted_pairs)
+    if total_w == 0:
+        return 0.0
+    s = sum(v * w for v, w in weighted_pairs) / total_w
+    return float(np.clip(s, 0.0, 1.0))
 ```
 
 ---
 
-## 六、Pipeline 执行流程
+# 📄 battery_risk/modules/\_\_init\_\_.py
 
-```
-main.py
-  └── BatteryRiskPipeline(data_path, vin_batch_size=2)
-        │
-        ├── _get_all_vins()           只读vin列，获取64辆车列表
-        │
-        └── for batch in batches:     每批N辆
-              ├── _load_batch()       pyarrow过滤读取，只加载该批数据
-              │
-              └── for vin in batch:
-                    ├── identify_operating_scenes()  L1工况识别
-                    ├── voltage_risk_score()          L2a
-                    ├── temperature_risk_score()      L2b
-                    ├── calc_charge_risk()            L2c
-                    ├── load_risk_score()             L2d
-                    ├── fault_risk_score()            L2e
-                    ├── 加权融合 + 规则升档           L3
-                    └── 返回vin级别结果字典（~30字段）
-              │
-              └── 释放batch内存(gc.collect)
-        │
-        └── _finalize()
-              ├── 合并所有结果为DataFrame
-              ├── 保存 output/risk_results.csv
-              └── 打印汇总统计
+```python
+"""
+battery_risk/modules/__init__.py
+"""
 ```
 
 ---
 
-## 七、最终输出格式（risk_results.csv）
+# 📄 battery_risk/modules/operating_scene.py
 
-| 字段 | 说明 |
-|---|---|
-| `vin` | 车辆ID |
-| `record_count` | 该车总记录数 |
-| `final_risk_score` | 综合风险分（0~1） |
-| `risk_level` | 英文等级（Low/Medium/High/Critical） |
-| `risk_level_cn` | 中文等级（低/中/高/极高风险） |
-| `risk_level_code` | 数字编码（0/1/2/3，用于排序） |
-| `action` | 处置建议 |
-| `rule_escalated` | 是否触发规则升档（0/1） |
-| `volt_risk_score` | 电压子分（0~1） |
-| `temp_risk_score` | 温度子分（0~1） |
-| `charge_risk_score` | 充电子分（0~1） |
-| `load_risk_score` | 负荷子分（0~1） |
-| `fault_risk_score` | 故障子分（0~1） |
+```python
+"""
+battery_risk/modules/operating_scene.py
+L1 工况识别模块 —— 给每条记录打上工况标签
+"""
+
+import numpy as np
+import pandas as pd
+
+from battery_risk.config import (
+    VSTATE_ON, VSTATE_OFF,
+    CSTATE_NO_CHARGE, CSTATE_STOP_CHARGE,
+    CSTATE_CHARGE_DONE, CSTATE_DRIVE_CHARGE,
+    CSTATE_PARK_CHARGE_SET, CSTATE_CHARGING_SET,
+    DCSTATE_WORK, DCSTATE_DISCONNECT,
+    GEAR_HAS_DRIVE_SET, GEAR_NO_DRIVE_SET,
+    GEAR_HAS_BRAKE_SET, GEAR_NO_BRAKE_SET,
+    GEAR_P_SET, GEAR_D_SET, GEAR_R_SET,
+    GEAR_DRIVE_SET, GEAR_COAST_SET,
+    GEAR_REGEN_TYPICAL_SET, GEAR_STATIC_SET,
+    GEAR_MOVING_SET, GEAR_BRAKE_SET,
+    GEAR_ALL_VALUES, GEAR_DEFAULT,
+    GEAR_ACTIVE_SET, GEAR_BRAKE_ACTIVE,
+    MSTATE_GEN, MSTATE_CONSUME, MSTATE_OFF,
+    SBP_ACTIVE, SBP_INACTIVE,
+    RSTATE_EV,
+    SPEED_STATIC, SPEED_CREEP, SPEED_LOW,
+    SPEED_MEDIUM, SPEED_HIGH, SPEED_VERY_HIGH,
+    SOC_CRITICAL_LOW, SOC_LOW_ZONE,
+    SOC_HIGH_ZONE, SOC_FULL_ZONE,
+    MIN_CHARGE_CURRENT_ABS,
+    DISCHARGE_CURRENT_HIGH, DISCHARGE_CURRENT_WARNING,
+    SLOW_CHARGE_POWER_MAX, FAST_CHARGE_POWER_MIN,
+    GREY_CHARGE_POWER_LOW, GREY_CHARGE_POWER_HIGH,
+    REGEN_SPEED_MIN,
+    FIELD_DEFAULTS,
+)
+
+
+# ═══════════════════════════════════════════════════════════════
+# 内部工具
+# ═══════════════════════════════════════════════════════════════
+
+def _safe_str(df, col, default=''):
+    if col in df.columns:
+        return df[col].fillna(default).astype(str).str.strip()
+    print(f"[WARN] 字段'{col}'不存在，用'{default}'填充")
+    return pd.Series(default, index=df.index, dtype=str)
+
+
+def _safe_num(df, col, default=0.0, keep_nan=False):
+    if col in df.columns:
+        s = pd.to_numeric(df[col], errors='coerce')
+        return s if keep_nan else s.fillna(default)
+    val = np.nan if keep_nan else default
+    return pd.Series(val, index=df.index, dtype=float)
+
+
+def _validate_gear(gear: pd.Series):
+    unknown = set(gear.unique()) - GEAR_ALL_VALUES - {GEAR_DEFAULT, ''}
+    if unknown:
+        print(f"[WARN] gear发现未知值({len(unknown)}种): "
+              f"{list(unknown)[:3]}...")
+
+
+# ═══════════════════════════════════════════════════════════════
+# 主函数
+# ═══════════════════════════════════════════════════════════════
+
+def identify_operating_scenes(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    L1 工况识别主入口
+    输入：原始DataFrame（单辆车或多辆车）
+    输出：添加工况标签列后的DataFrame
+    """
+    df = df.sort_values(['vin', 'date', 'time']).reset_index(drop=True)
+
+    # Step1: 字段预处理
+    df, cols = _preprocess(df)
+
+    # Step2: 功率计算
+    df = _calc_power(df, cols)
+
+    # Step3: 布尔条件
+    cond = _build_conditions(df, cols)
+
+    # Step4: 充电类型
+    df = _classify_charge_type(df, cond)
+
+    # Step5: 主工况
+    df['scene_tag'] = _classify_scene_tag(df, cond, cols)
+
+    # Step6: 辅助标签
+    df['speed_level'] = _classify_speed(cols['speed'])
+    df['soc_zone']    = _classify_soc(cols['soc_raw'])
+
+    # Step7: 详细工况
+    df['scene_detail'] = _classify_scene_detail(df, cond, cols)
+
+    # Step8: 充电阶段
+    df['charge_stage'] = _classify_charge_stage(df, cols)
+
+    # Step9: 放电等级
+    df['discharge_level'] = _classify_discharge_level(df, cols)
+
+    # Step10: 风险标记
+    df = _mark_flags(df, cond, cols)
+
+    # Step11: 事件切分
+    df = _split_events(df)
+
+    return df
+
+
+# ───────────────────────────────────────────────────────────────
+def _preprocess(df):
+    cols = {}
+
+    # 字符串字段
+    for col, default in [
+        ('vstate',   VSTATE_OFF),
+        ('cstate',   CSTATE_NO_CHARGE),
+        ('dcstate',  DCSTATE_DISCONNECT),
+        ('gear',     GEAR_DEFAULT),
+        ('mstate_0', MSTATE_OFF),
+        ('mstate_1', MSTATE_OFF),
+        ('sbp',      SBP_INACTIVE),
+        ('rstate',   RSTATE_EV),
+    ]:
+        cols[col] = _safe_str(df, col, default)
+        df[col]   = cols[col]
+
+    # 数值字段（填0）
+    for col in ['speed', 'tbc', 'tbv', 'ad']:
+        cols[col] = _safe_num(df, col, 0.0, keep_nan=False)
+        df[col]   = cols[col]
+
+    # 数值字段（保留NaN）
+    for col in ['soc', 'maxt', 'mint', 'maxbuv', 'minbuv', 'inre']:
+        cols[f'{col}_raw'] = _safe_num(df, col, keep_nan=True)
+
+    cols['soc'] = cols['soc_raw'].fillna(50.0)
+    _validate_gear(cols['gear'])
+    return df, cols
+
+
+# ───────────────────────────────────────────────────────────────
+def _calc_power(df, cols):
+    tbc = cols['tbc']
+    tbv = cols['tbv']
+    df['power_abs_w']       = (tbv * tbc.abs()).round(2)
+    df['discharge_power_w'] = np.where(tbc > 0, tbv * tbc, 0.0)
+    df['regen_power_w']     = np.where(tbc < 0, tbv * tbc.abs(), 0.0)
+    return df
+
+
+# ───────────────────────────────────────────────────────────────
+def _build_conditions(df, cols):
+    tbc     = cols['tbc']
+    speed   = cols['speed']
+    soc     = cols['soc']
+    vstate  = cols['vstate']
+    cstate  = cols['cstate']
+    gear    = cols['gear']
+    mstate0 = cols['mstate_0']
+    mstate1 = cols['mstate_1']
+    sbp     = cols['sbp']
+    pw      = df['regen_power_w']
+
+    c = {}
+
+    # 速度
+    c['c_static']   = speed <= SPEED_STATIC
+    c['c_creep']    = (speed > SPEED_STATIC) & (speed <= SPEED_CREEP)
+    c['c_moving']   = speed > REGEN_SPEED_MIN
+    c['c_high_spd'] = speed > SPEED_HIGH
+
+    # 车辆状态
+    c['c_von']  = vstate == VSTATE_ON
+    c['c_voff'] = vstate == VSTATE_OFF
+
+    # cstate
+    c['c_park_charge']  = cstate.isin(CSTATE_PARK_CHARGE_SET)
+    c['c_drive_charge'] = cstate == CSTATE_DRIVE_CHARGE
+    c['c_no_charge']    = cstate == CSTATE_NO_CHARGE
+    c['c_charge_done']  = cstate == CSTATE_CHARGE_DONE
+    c['c_any_charging'] = cstate.isin(CSTATE_CHARGING_SET)
+
+    # gear
+    c['c_gear_has_drive'] = gear.isin(GEAR_HAS_DRIVE_SET)
+    c['c_gear_has_brake'] = gear.isin(GEAR_HAS_BRAKE_SET)
+    c['c_gear_no_drive']  = gear.isin(GEAR_NO_DRIVE_SET)
+    c['c_gear_no_brake']  = gear.isin(GEAR_NO_BRAKE_SET)
+    c['c_gear_p']         = gear.isin(GEAR_P_SET)
+    c['c_gear_d']         = gear.isin(GEAR_D_SET)
+    c['c_gear_r']         = gear.isin(GEAR_R_SET)
+    c['c_gear_drive']     = gear.isin(GEAR_DRIVE_SET)
+    c['c_gear_coast']     = gear.isin(GEAR_COAST_SET)
+    c['c_gear_regen_d']   = gear.isin(GEAR_REGEN_TYPICAL_SET)
+
+    # mstate
+    c['c_m0_gen']     = mstate0 == MSTATE_GEN
+    c['c_m1_gen']     = mstate1 == MSTATE_GEN
+    c['c_m0_consume'] = mstate0 == MSTATE_CONSUME
+    c['c_m1_consume'] = mstate1 == MSTATE_CONSUME
+    c['c_any_gen']    = c['c_m0_gen'] | c['c_m1_gen']
+    c['c_any_consume']= c['c_m0_consume'] | c['c_m1_consume']
+
+    # sbp
+    c['c_sbp_active'] = sbp == SBP_ACTIVE
+    c['c_sbp_off']    = sbp == SBP_INACTIVE
+
+    # 电流
+    c['c_tbc_pos']  = tbc > 0
+    c['c_tbc_neg']  = tbc < -MIN_CHARGE_CURRENT_ABS
+    c['c_tbc_zero'] = tbc.abs() <= MIN_CHARGE_CURRENT_ABS
+
+    # 功率范围
+    c['c_slow_power'] = pw <= SLOW_CHARGE_POWER_MAX
+    c['c_fast_power'] = pw >  FAST_CHARGE_POWER_MIN
+    c['c_grey_power'] = (pw > GREY_CHARGE_POWER_LOW) & \
+                        (pw <= GREY_CHARGE_POWER_HIGH)
+
+    # SOC
+    c['c_soc_crit'] = soc <= SOC_CRITICAL_LOW
+    c['c_soc_low']  = soc <= SOC_LOW_ZONE
+    c['c_soc_high'] = soc >= SOC_HIGH_ZONE
+    c['c_soc_full'] = soc >= SOC_FULL_ZONE
+
+    # 制动综合
+    c['c_brake_any'] = (
+        c['c_sbp_active']   |
+        c['c_gear_has_brake']|
+        c['c_any_gen']      |
+        c['c_gear_regen_d']
+    )
+    return c
+
+
+# ───────────────────────────────────────────────────────────────
+def _classify_charge_type(df, cond):
+    c = cond
+
+    is_regen = (
+        c['c_tbc_neg'] & c['c_moving'] & c['c_brake_any']
+    )
+    is_fast = (
+        c['c_tbc_neg'] & ~is_regen &
+        c['c_static']  & c['c_fast_power'] & c['c_park_charge']
+    )
+    is_grey = (
+        c['c_tbc_neg'] & ~is_regen & ~is_fast &
+        c['c_static']  & c['c_grey_power'] & c['c_park_charge']
+    )
+    is_slow = (
+        c['c_tbc_neg'] & ~is_regen & ~is_fast &
+        c['c_static']  &
+        (c['c_slow_power'] | is_grey) & c['c_park_charge']
+    )
+    is_drive_chg = (
+        c['c_tbc_neg'] & ~is_regen & ~is_fast & ~is_slow &
+        c['c_drive_charge'] & ~c['c_static']
+    )
+
+    df['charge_type'] = np.select(
+        [is_regen, is_fast, is_slow, is_drive_chg],
+        ['regen_braking', 'fast_charge', 'slow_charge', 'drive_charge'],
+        default='no_charge'
+    )
+    df['is_grey_charge_zone'] = is_grey.astype(np.int8)
+    return df
+
+
+# ───────────────────────────────────────────────────────────────
+def _classify_scene_tag(df, cond, cols):
+    c     = cond
+    ct    = df['charge_type']
+    tbc   = cols['tbc']
+    speed = cols['speed']
+
+    is_fast      = ct == 'fast_charge'
+    is_slow      = ct == 'slow_charge'
+    is_drv_chg   = ct == 'drive_charge'
+    is_regen     = ct == 'regen_braking'
+    is_drive     = c['c_tbc_pos'] & (speed > SPEED_STATIC)
+    is_rest_on   = c['c_von']  & c['c_static'] & (ct == 'no_charge')
+    is_rest_off  = c['c_voff']
+
+    return np.select(
+        [is_fast, is_slow, is_drv_chg, is_regen,
+         is_drive, is_rest_on, is_rest_off],
+        ['fast_charge', 'slow_charge', 'drive_charge',
+         'regen_braking', 'drive', 'rest_on', 'rest_off'],
+        default='unknown'
+    )
+
+
+# ───────────────────────────────────────────────────────────────
+def _classify_speed(speed):
+    return np.select(
+        [speed <= SPEED_STATIC,
+         speed <= SPEED_CREEP,
+         speed <= SPEED_LOW,
+         speed <= SPEED_MEDIUM,
+         speed <= SPEED_HIGH,
+         speed <= SPEED_VERY_HIGH],
+        ['static','creep','low','medium','high','very_high'],
+        default='extreme'
+    )
+
+
+def _classify_soc(soc_raw):
+    soc = soc_raw.fillna(-1)
+    return np.select(
+        [soc < 0,
+         soc <= SOC_CRITICAL_LOW,
+         soc <= SOC_LOW_ZONE,
+         soc <= 80.0,
+         soc <= SOC_HIGH_ZONE,
+         soc < SOC_FULL_ZONE],
+        ['unknown','critical_low','low','normal','high','near_full'],
+        default='full'
+    )
+
+
+# ───────────────────────────────────────────────────────────────
+def _classify_scene_detail(df, cond, cols):
+    c     = cond
+    tag   = df['scene_tag']
+    tbc   = cols['tbc']
+    soc   = cols['soc']
+    maxt  = cols['maxt_raw'].fillna(25)
+    sz    = df['soc_zone']
+    sl    = df['speed_level']
+
+    fc_full    = (tag=='fast_charge') & (soc>=SOC_FULL_ZONE)
+    fc_overtemp= (tag=='fast_charge') & (maxt>40)
+    fc_tail    = (tag=='fast_charge') & (soc>=95) & ~fc_full
+    fc_normal  = (tag=='fast_charge') & ~fc_overtemp & ~fc_full & ~fc_tail
+
+    sc_full    = (tag=='slow_charge') & (soc>=SOC_FULL_ZONE)
+    sc_grey    = (tag=='slow_charge') & (df['is_grey_charge_zone']==1)
+    sc_tail    = (tag=='slow_charge') & (soc>=95) & ~sc_full
+    sc_normal  = (tag=='slow_charge') & ~sc_grey & ~sc_full & ~sc_tail
+
+    d_crit     = (tag=='drive') & (sz=='critical_low')
+    d_low      = (tag=='drive') & (sz=='low')
+    d_heavy    = (tag=='drive') & (tbc>DISCHARGE_CURRENT_HIGH)
+    d_vhigh    = (tag=='drive') & (sl=='very_high')
+    d_high     = (tag=='drive') & (sl=='high')
+    d_dual     = (tag=='drive') & c['c_m0_consume'] & c['c_m1_consume']
+    d_creep    = (tag=='drive') & (sl=='creep')
+    d_normal   = (tag=='drive') & ~(d_crit|d_low|d_heavy|d_vhigh|d_high|d_dual|d_creep)
+
+    rg_comb    = (tag=='regen_braking') & c['c_sbp_active'] & c['c_any_gen']
+    rg_pure    = (tag=='regen_braking') & ~c['c_sbp_active'] & c['c_any_gen']
+    rg_coast   = (tag=='regen_braking') & c['c_gear_coast']
+    rg_mech    = (tag=='regen_braking') & c['c_sbp_active'] & ~c['c_any_gen']
+
+    ron_p      = (tag=='rest_on')  & c['c_gear_p']
+    ron_d      = (tag=='rest_on')  & c['c_gear_d']
+    roff_abn   = (tag=='rest_off') & (tbc.abs()>5)
+    roff_ok    = (tag=='rest_off') & ~(tbc.abs()>5)
+
+    conditions = [
+        fc_full, fc_overtemp, fc_tail, fc_normal,
+        sc_full, sc_tail, sc_grey, sc_normal,
+        tag=='drive_charge',
+        d_crit, d_low, d_heavy, d_vhigh, d_high, d_dual, d_creep, d_normal,
+        rg_comb, rg_pure, rg_coast, rg_mech,
+        ron_p, ron_d, roff_abn, roff_ok,
+    ]
+    choices = [
+        'fast_charge_full_soc','fast_charge_overtemp',
+        'fast_charge_tail','fast_charge_normal',
+        'slow_charge_full_soc','slow_charge_tail',
+        'slow_charge_grey_zone','slow_charge_normal',
+        'drive_charge_phev',
+        'drive_critical_low_soc','drive_low_soc','drive_heavy_load',
+        'drive_very_high_speed','drive_high_speed',
+        'drive_dual_motor','drive_creep','drive_normal',
+        'regen_combined_brake','regen_pure_recovery',
+        'regen_coasting','regen_mech_brake_only',
+        'rest_on_p_gear','rest_on_d_gear',
+        'rest_off_abnormal','rest_off_normal',
+    ]
+    return np.select(conditions, choices, default='unknown_detail')
+
+
+# ───────────────────────────────────────────────────────────────
+def _classify_charge_stage(df, cols):
+    soc       = cols['soc']
+    in_charge = df['scene_tag'].isin(['fast_charge','slow_charge'])
+    return np.select(
+        [in_charge & (soc<20),
+         in_charge & (soc<80),
+         in_charge & (soc<95),
+         in_charge & (soc>=95)],
+        ['pre_charge','bulk_charge','absorption','float_charge'],
+        default='not_charging'
+    )
+
+
+def _classify_discharge_level(df, cols):
+    tbc        = cols['tbc']
+    is_driving = df['scene_tag'] == 'drive'
+    return np.select(
+        [is_driving & (tbc>DISCHARGE_CURRENT_HIGH),
+         is_driving & (tbc>DISCHARGE_CURRENT_WARNING),
+         is_driving & (tbc>0)],
+        ['high','medium','normal'],
+        default='none'
+    )
+
+
+# ───────────────────────────────────────────────────────────────
+def _mark_flags(df, cond, cols):
+    c    = cond
+    tbc  = cols['tbc']
+    soc  = cols['soc']
+    maxt = cols['maxt_raw'].fillna(25)
+    tag  = df['scene_tag']
+
+    flag_defs = {
+        'flag_low_soc_high_discharge':
+            c['c_soc_low'] & c['c_tbc_pos'] & (tbc>DISCHARGE_CURRENT_HIGH),
+        'flag_critical_low_soc_drive':
+            (tag=='drive') & c['c_soc_crit'],
+        'flag_charge_tail':
+            tag.isin(['fast_charge','slow_charge']) & (soc>=95),
+        'flag_full_charge':
+            tag.isin(['fast_charge','slow_charge']) & c['c_soc_full'],
+        'flag_fast_charge_overtemp':
+            (tag=='fast_charge') & (maxt>40),
+        'flag_regen_braking':
+            tag=='regen_braking',
+        'flag_mech_brake_only':
+            (tag=='regen_braking') & c['c_sbp_active'] & ~c['c_any_gen'],
+        'flag_high_speed_high_discharge':
+            c['c_high_spd'] & (tbc>DISCHARGE_CURRENT_HIGH),
+        'flag_critical_off_discharge':
+            c['c_voff'] & (tbc>10),
+        'flag_rest_on_abnormal_current':
+            (tag=='rest_on') & (tbc.abs()>5),
+        'flag_dcdc_working':
+            df['dcstate']==DCSTATE_WORK,
+        'flag_charge_done_state':
+            c['c_charge_done'],
+        'flag_overcharge_risk':
+            c['c_charge_done'] & c['c_tbc_neg'],
+    }
+    for name, condition in flag_defs.items():
+        df[name] = condition.astype(np.int8)
+
+    df['flag_grey_charge_zone'] = df['is_grey_charge_zone'].copy()
+    return df
+
+
+# ───────────────────────────────────────────────────────────────
+def _split_events(df):
+    vin_chg   = df['vin'] != df['vin'].shift(1)
+    scene_chg = df['scene_tag'] != df['scene_tag'].shift(1)
+    df['event_id'] = (vin_chg | scene_chg).cumsum().astype(np.int32)
+    return df
+
+
+# ═══════════════════════════════════════════════════════════════
+# 充电事件提取（供charge_risk.py调用）
+# ═══════════════════════════════════════════════════════════════
+
+def get_charge_events(df: pd.DataFrame) -> pd.DataFrame:
+    """提取充电事件汇总表"""
+    df_chg = df[df['charge_type'].isin(
+        ['fast_charge','slow_charge']
+    )].copy()
+
+    if df_chg.empty:
+        return pd.DataFrame()
+
+    # 计算压差（若有单体电压字段）
+    if 'maxbuv' in df_chg.columns and 'minbuv' in df_chg.columns:
+        df_chg['volt_diff'] = (
+            df_chg['maxbuv'].fillna(0) - df_chg['minbuv'].fillna(0)
+        )
+
+    agg_dict = {
+        'charge_type':        ('charge_type',        'first'),
+        'date':               ('date',               'first'),
+        'soc_start':          ('soc',                'first'),
+        'soc_end':            ('soc',                'last'),
+        'current_abs_mean':   ('tbc',                lambda x: x.abs().mean()),
+        'current_abs_max':    ('tbc',                lambda x: x.abs().max()),
+        'power_mean_w':       ('regen_power_w',      'mean'),
+        'power_max_w':        ('regen_power_w',      'max'),
+        'duration_records':   ('tbc',                'count'),
+        'in_grey_zone':       ('is_grey_charge_zone','max'),
+    }
+    if 'maxt' in df_chg.columns:
+        agg_dict['max_temp'] = ('maxt', 'max')
+    if 'volt_diff' in df_chg.columns:
+        agg_dict['max_volt_diff'] = ('volt_diff', 'max')
+        agg_dict['end_volt_diff'] = ('volt_diff', 'last')
+
+    result = df_chg.groupby(
+        ['vin','event_id'], sort=False
+    ).agg(**agg_dict).reset_index()
+
+    return result
+```
 
 ---
 
-## 八、内存管理策略
+# 📄 battery_risk/modules/voltage_risk.py
 
-### 问题根源
-73GB数据全量加载后，`df.copy()`触发pandas内部block合并，申请额外**4.14GB连续内存**失败。
+```python
+"""
+battery_risk/modules/voltage_risk.py
+L2a 电压风险评分
+"""
 
-### 解决方案
-```
-1. Pipeline 不接受外部 df（不做 copy）
-   → 直接从文件按 VIN 批次读取
+import numpy as np
+import pandas as pd
 
-2. pyarrow 过滤读取（filters参数）
-   → 只加载指定 VIN 的数据，单批约 2~5GB
+from battery_risk.config import (
+    VOLT_MAX_THRESHOLD, VOLT_MIN_THRESHOLD,
+    VOLT_DIFF_ALARM, VOLT_DIFF_WARNING,
+    VOLT_DIFF_CHARGE_END, CHARGE_END_VOLT_DIFF,
+    VOLT_WINDOW, VOLT_TREND_WINDOW,
+    ABNORMAL_CELL_REPEAT_TH,
+    SLOW_CHARGE_POWER_MAX, FAST_CHARGE_POWER_MIN,
+    DISCHARGE_CURRENT_WARNING,
+)
 
-3. 每批处理完立即 del + gc.collect()
 
-4. 结果只保留 VIN 级别汇总（~30字段×64行，KB级别）
+def calc_voltage_risk(df: pd.DataFrame) -> dict:
+    """
+    电压风险评分主入口
+    输入：单辆车已完成工况识别的DataFrame
+    输出：{'volt_risk_score': float, ...}
+    """
+    if df.empty:
+        return _zero_result()
 
-5. vin_batch_size 配置建议：
-   8GB  内存 → batch_size=1
-   16GB 内存 → batch_size=2
-   32GB 内存 → batch_size=4
+    # 检查必要字段
+    if 'maxbuv' not in df.columns or 'minbuv' not in df.columns:
+        return _zero_result()
+
+    maxbuv = pd.to_numeric(df['maxbuv'], errors='coerce').fillna(0)
+    minbuv = pd.to_numeric(df['minbuv'], errors='coerce').fillna(0)
+    maxvbn = df['maxvbn'] if 'maxvbn' in df.columns else None
+    minvbn = df['minvbn'] if 'minvbn' in df.columns else None
+
+    tag   = df.get('scene_tag',  pd.Series('unknown', index=df.index))
+    stage = df.get('charge_stage', pd.Series('not_charging', index=df.index))
+    tbc   = pd.to_numeric(df.get('tbc', 0), errors='coerce').fillna(0)
+    tbv   = pd.to_numeric(df.get('tbv', 0), errors='coerce').fillna(0)
+
+    volt_diff = maxbuv - minbuv
+
+    # ── 子项1: 过压 ──────────────────────────────────────────
+    overvolt  = (maxbuv > VOLT_MAX_THRESHOLD)
+    ov_ratio  = float(overvolt.mean())
+    # 持续过压（窗口内持续）
+    persist_ov = (
+        overvolt.rolling(VOLT_WINDOW, min_periods=1).sum() >=
+        VOLT_WINDOW * 0.5
+    )
+    s_overvolt = float(np.clip(
+        ov_ratio * 0.5 + persist_ov.mean() * 0.5, 0, 1
+    ))
+
+    # ── 子项2: 欠压 ──────────────────────────────────────────
+    undervolt = (minbuv < VOLT_MIN_THRESHOLD) & (minbuv > 0)
+    uv_ratio  = float(undervolt.mean())
+    # 行驶中欠压更危险
+    drive_uv  = float((undervolt & (tag=='drive')).mean())
+    s_undervolt = float(np.clip(
+        uv_ratio * 0.4 + drive_uv * 0.6, 0, 1
+    ))
+
+    # ── 子项3: 压差 ──────────────────────────────────────────
+    alarm_diff   = volt_diff > VOLT_DIFF_ALARM
+    warning_diff = volt_diff > VOLT_DIFF_WARNING
+    persist_diff = (
+        alarm_diff.rolling(VOLT_WINDOW, min_periods=1).sum() >=
+        VOLT_WINDOW * 0.5
+    )
+    s_diff = float(np.clip(
+        alarm_diff.mean()   * 0.4 +
+        warning_diff.mean() * 0.2 +
+        persist_diff.mean() * 0.4,
+        0, 1
+    ))
+
+    # ── 子项4: 充电末段压差 ──────────────────────────────────
+    float_mask = (stage == 'float_charge')
+    if float_mask.sum() > 5:
+        tail_diff_alarm = (volt_diff[float_mask] > VOLT_DIFF_CHARGE_END).mean()
+        s_charge_end    = float(np.clip(tail_diff_alarm * 2.0, 0, 1))
+    else:
+        s_charge_end = 0.0
+
+    # ── 子项5: 固定异常单体 ──────────────────────────────────
+    s_fixed = 0.0
+    if maxvbn is not None and len(maxvbn.dropna()) > 10:
+        freq_high = maxvbn.value_counts(normalize=True)
+        max_high  = float(freq_high.iloc[0]) if len(freq_high)>0 else 0
+        s_fixed  += max(0, max_high - 0.5) * 1.0   # 超过50%占比认为固定
+    if minvbn is not None and len(minvbn.dropna()) > 10:
+        freq_low = minvbn.value_counts(normalize=True)
+        max_low  = float(freq_low.iloc[0]) if len(freq_low)>0 else 0
+        s_fixed += max(0, max_low - 0.5) * 1.0
+    s_fixed = float(np.clip(s_fixed, 0, 1))
+
+    # ── 子项6: 电压趋势下降 ──────────────────────────────────
+    drive_mask = tag == 'drive'
+    s_trend    = 0.0
+    if drive_mask.sum() > 30:
+        tbv_drive = tbv[drive_mask].reset_index(drop=True)
+        # 滚动斜率
+        def _slope(x):
+            if len(x) < 10: return 0
+            return np.polyfit(range(len(x)), x, 1)[0]
+        slopes = tbv_drive.rolling(
+            VOLT_TREND_WINDOW, min_periods=10
+        ).apply(_slope, raw=True)
+        abnormal_drop = (slopes < -0.5).mean()
+        s_trend = float(np.clip(abnormal_drop * 5.0, 0, 1))
+
+    # ── 综合得分 ─────────────────────────────────────────────
+    volt_risk_score = float(np.clip(
+        s_overvolt   * 0.25 +
+        s_undervolt  * 0.20 +
+        s_diff       * 0.25 +
+        s_charge_end * 0.15 +
+        s_fixed      * 0.10 +
+        s_trend      * 0.05,
+        0, 1
+    ))
+
+    return {
+        'volt_risk_score':        volt_risk_score,
+        'volt_overvolt_score':    round(s_overvolt,   4),
+        'volt_undervolt_score':   round(s_undervolt,  4),
+        'volt_diff_score':        round(s_diff,       4),
+        'volt_charge_end_score':  round(s_charge_end, 4),
+        'volt_fixed_cell_score':  round(s_fixed,      4),
+        'volt_trend_score':       round(s_trend,      4),
+        'overvolt_ratio':         round(ov_ratio,     4),
+        'undervolt_ratio':        round(uv_ratio,     4),
+        'volt_diff_mean':         round(float(volt_diff.mean()), 4),
+        'volt_diff_max':          round(float(volt_diff.max()),  4),
+    }
+
+
+def _zero_result():
+    return {
+        'volt_risk_score':       0.0,
+        'volt_overvolt_score':   0.0,
+        'volt_undervolt_score':  0.0,
+        'volt_diff_score':       0.0,
+        'volt_charge_end_score': 0.0,
+        'volt_fixed_cell_score': 0.0,
+        'volt_trend_score':      0.0,
+        'overvolt_ratio':        0.0,
+        'undervolt_ratio':       0.0,
+        'volt_diff_mean':        0.0,
+        'volt_diff_max':         0.0,
+    }
 ```
 
 ---
 
-## 九、已知问题与解决记录
+# 📄 battery_risk/modules/temperature_risk.py
 
-| 问题 | 原因 | 解决方案 |
+```python
+"""
+battery_risk/modules/temperature_risk.py
+L2b 温度风险评分
+"""
+
+import numpy as np
+import pandas as pd
+
+from battery_risk.config import (
+    TEMP_MAX_THRESHOLD, TEMP_MAX_ALARM, TEMP_MAX_WARNING,
+    TEMP_MIN_THRESHOLD, TEMP_MIN_COLD,
+    TEMP_DIFF_ALARM, TEMP_DIFF_WARNING, TEMP_DIFF_THRESHOLD,
+    TEMP_RISE_RATE_ALARM, TEMP_RISE_RATE_WARN,
+    TEMP_WINDOW, HOT_PROBE_REPEAT_TH,
+    STATIC_TEMP_RISE_TH, CHARGE_TEMP_RISE_RATE, CHARGE_TEMP_MAX,
+    CSTATE_CHARGING_SET,
+)
+
+
+def calc_temperature_risk(df: pd.DataFrame) -> dict:
+    """
+    温度风险评分主入口
+    输入：单辆车已完成工况识别的DataFrame
+    输出：{'temp_risk_score': float, ...}
+    """
+    if df.empty or 'maxt' not in df.columns:
+        return _zero_result()
+
+    maxt  = pd.to_numeric(df['maxt'], errors='coerce')
+    mint  = pd.to_numeric(df.get('mint', pd.Series(np.nan, index=df.index)),
+                          errors='coerce')
+    maxtn = df.get('maxtn', None)
+
+    tag    = df.get('scene_tag',  pd.Series('unknown', index=df.index))
+    cstate = df.get('cstate',     pd.Series('未充电状态', index=df.index))
+
+    n_total = len(df)
+    if n_total == 0:
+        return _zero_result()
+
+    # ── 子项1: 最高温度超限 ──────────────────────────────────
+    severe_hot   = (maxt > TEMP_MAX_ALARM)
+    alarm_hot    = (maxt > TEMP_MAX_THRESHOLD)
+    warning_hot  = (maxt > TEMP_MAX_WARNING)
+    persist_hot  = (
+        alarm_hot.rolling(TEMP_WINDOW, min_periods=1).sum() >=
+        TEMP_WINDOW * 0.5
+    )
+    s_high_temp = float(np.clip(
+        severe_hot.mean()   * 1.0 +
+        alarm_hot.mean()    * 0.6 +
+        warning_hot.mean()  * 0.3 +
+        persist_hot.mean()  * 0.4,
+        0, 1
+    ))
+
+    # ── 子项2: 最低温度超限 ──────────────────────────────────
+    if not mint.isna().all():
+        cold_flag       = (mint < TEMP_MIN_THRESHOLD)
+        very_cold_flag  = (mint < -10.0)
+        cold_charge     = cold_flag & cstate.isin(CSTATE_CHARGING_SET)
+        s_low_temp = float(np.clip(
+            cold_flag.mean()       * 0.3 +
+            very_cold_flag.mean()  * 0.5 +
+            cold_charge.mean()     * 0.7,
+            0, 1
+        ))
+    else:
+        s_low_temp = 0.0
+
+    # ── 子项3: 温差过大 ──────────────────────────────────────
+    if not mint.isna().all():
+        temp_diff     = maxt - mint
+        alarm_diff    = (temp_diff > TEMP_DIFF_ALARM)
+        warning_diff  = (temp_diff > TEMP_DIFF_WARNING)
+        drive_hi_diff = alarm_diff & (tag=='drive')
+        s_temp_diff = float(np.clip(
+            alarm_diff.mean()    * 0.4 +
+            warning_diff.mean()  * 0.2 +
+            drive_hi_diff.mean() * 0.4,
+            0, 1
+        ))
+    else:
+        s_temp_diff = 0.0
+
+    # ── 子项4: 温升速率 ──────────────────────────────────────
+    temp_rise = maxt.diff().fillna(0)
+
+    drive_mask  = tag == 'drive'
+    charge_mask = cstate.isin(CSTATE_CHARGING_SET)
+    static_mask = tag.isin(['rest_on','rest_off'])
+
+    def _rate_score(mask, threshold):
+        if mask.sum() < 5:
+            return 0.0
+        return float((temp_rise[mask] > threshold).mean())
+
+    alarm_drive   = _rate_score(drive_mask,  TEMP_RISE_RATE_ALARM)
+    alarm_charge  = _rate_score(charge_mask, CHARGE_TEMP_RISE_RATE)
+    alarm_static  = _rate_score(static_mask, 1.0)
+
+    s_rise_rate = float(np.clip(
+        alarm_drive  * 0.4 +
+        alarm_charge * 0.4 +
+        alarm_static * 0.5,
+        0, 1
+    ))
+
+    # ── 子项5: 静置温升（最危险信号）────────────────────────
+    s_static_rise = 0.0
+    if static_mask.sum() > 10:
+        static_maxt = maxt[static_mask].dropna()
+        if len(static_maxt) > 5:
+            total_rise = float(static_maxt.max() - static_maxt.min())
+            s_static_rise = float(np.clip(
+                total_rise / STATIC_TEMP_RISE_TH * 0.5, 0, 1
+            ))
+            # 趋势斜率加权
+            try:
+                slope = np.polyfit(
+                    range(len(static_maxt)), static_maxt.values, 1
+                )[0]
+                if slope > 0.1:
+                    s_static_rise = float(np.clip(
+                        s_static_rise + 0.3, 0, 1
+                    ))
+            except Exception:
+                pass
+
+    # ── 子项6: 固定热点探针 ──────────────────────────────────
+    s_hot_probe = 0.0
+    if maxtn is not None:
+        valid_maxtn = maxtn.dropna()
+        if len(valid_maxtn) > 10:
+            freq = valid_maxtn.value_counts(normalize=True)
+            max_freq = float(freq.iloc[0]) if len(freq) > 0 else 0.0
+            # 超过50%固定→局部热点
+            s_hot_probe = float(np.clip(
+                max(0, max_freq - 0.5) * 2.0, 0, 1
+            ))
+
+    # ── 综合得分 ─────────────────────────────────────────────
+    temp_risk_score = float(np.clip(
+        s_high_temp   * 0.30 +
+        s_temp_diff   * 0.25 +
+        s_rise_rate   * 0.20 +
+        s_static_rise * 0.15 +
+        s_low_temp    * 0.05 +
+        s_hot_probe   * 0.05,
+        0, 1
+    ))
+
+    return {
+        'temp_risk_score':         temp_risk_score,
+        'temp_high_score':         round(s_high_temp,   4),
+        'temp_low_score':          round(s_low_temp,    4),
+        'temp_diff_score':         round(s_temp_diff,   4),
+        'temp_rise_rate_score':    round(s_rise_rate,   4),
+        'temp_static_rise_score':  round(s_static_rise, 4),
+        'temp_hot_probe_score':    round(s_hot_probe,   4),
+        'maxt_mean':               round(float(maxt.mean()), 2),
+        'maxt_max':                round(float(maxt.max()),  2),
+    }
+
+
+def _zero_result():
+    return {
+        'temp_risk_score':        0.0,
+        'temp_high_score':        0.0,
+        'temp_low_score':         0.0,
+        'temp_diff_score':        0.0,
+        'temp_rise_rate_score':   0.0,
+        'temp_static_rise_score': 0.0,
+        'temp_hot_probe_score':   0.0,
+        'maxt_mean':              0.0,
+        'maxt_max':               0.0,
+    }
+```
+
+---
+
+# 📄 battery_risk/modules/charge_risk.py
+
+```python
+"""
+battery_risk/modules/charge_risk.py
+L2c 充电行为风险评分
+"""
+
+import numpy as np
+import pandas as pd
+
+from battery_risk.config import (
+    CSTATE_CHARGE_DONE, CSTATE_PARK_CHARGE_SET,
+    CHARGE_SOC_START_LOW, CHARGE_SOC_END_HIGH,
+    CHARGE_TEMP_MAX, VOLT_DIFF_CHARGE_END,
+    SLOW_CHARGE_POWER_MAX, FAST_CHARGE_POWER_MIN,
+    SOC_HIGH_ZONE, SOC_FULL_ZONE,
+    TEMP_MAX_WARNING,
+    MIN_CHARGE_CURRENT_ABS,
+)
+from battery_risk.modules.operating_scene import get_charge_events
+
+
+def calc_charge_risk(df: pd.DataFrame) -> dict:
+    """
+    充电行为风险评分主入口
+    输入：单辆车已完成工况识别的DataFrame
+    输出：{'charge_risk_score': float, ...}
+    """
+    if df.empty:
+        return _zero_result()
+
+    charge_events = get_charge_events(df)
+
+    if charge_events.empty:
+        # 无充电记录，检查高SOC停置
+        high_soc_r = _calc_high_soc_park_risk(df)
+        return {**_zero_result(), 'high_soc_park_risk': high_soc_r}
+
+    ev = charge_events.copy()
+    ev['is_fast'] = (ev['charge_type'] == 'fast_charge').astype(int)
+    ev['is_slow'] = (ev['charge_type'] == 'slow_charge').astype(int)
+    ev['chg_weight'] = np.where(ev['is_fast']==1, 1.4, 1.0)
+
+    # 充电完成停留
+    done_records = int(
+        (df.get('cstate', pd.Series('', index=df.index)) == CSTATE_CHARGE_DONE
+         ).sum()
+    )
+
+    # ── 单事件评分 ───────────────────────────────────────────
+    ev = _score_events(ev)
+
+    # ── VIN级聚合 ────────────────────────────────────────────
+    charge_event_cnt = len(ev)
+    fast_charge_cnt  = int(ev['is_fast'].sum())
+    slow_charge_cnt  = int(ev['is_slow'].sum())
+    full_charge_cnt  = int((ev['soc_end'].fillna(0) >= SOC_FULL_ZONE).sum())
+    overtemp_cnt     = int(ev.get('r_overtemp', pd.Series(0)).sum())
+
+    risk_mean = float(ev['event_risk'].mean())
+    risk_max  = float(ev['event_risk'].max())
+
+    fast_charge_ratio = fast_charge_cnt / max(charge_event_cnt, 1)
+
+    # 基础充电风险
+    charge_risk_base = float(np.clip(
+        risk_mean * 0.5 + risk_max * 0.5, 0, 1
+    ))
+
+    # 高SOC停置风险
+    high_soc_park_risk = _calc_high_soc_park_risk(df)
+
+    # 充电完成停留风险
+    charge_done_risk = float(np.clip(done_records / 100, 0, 0.3))
+
+    # 最终得分
+    charge_risk_score = float(np.clip(
+        charge_risk_base   * 0.75 +
+        high_soc_park_risk * 0.15 +
+        charge_done_risk   * 0.10,
+        0, 1
+    ))
+
+    return {
+        'charge_risk_score':   charge_risk_score,
+        'charge_risk_base':    round(charge_risk_base,    4),
+        'high_soc_park_risk':  round(high_soc_park_risk,  4),
+        'charge_done_risk':    round(charge_done_risk,     4),
+        'charge_event_cnt':    charge_event_cnt,
+        'fast_charge_cnt':     fast_charge_cnt,
+        'slow_charge_cnt':     slow_charge_cnt,
+        'full_charge_cnt':     full_charge_cnt,
+        'overtemp_cnt':        overtemp_cnt,
+        'fast_charge_ratio':   round(fast_charge_ratio, 4),
+        'charge_risk_mean':    round(risk_mean,          4),
+        'charge_risk_max':     round(risk_max,           4),
+    }
+
+
+# ───────────────────────────────────────────────────────────────
+def _score_events(ev: pd.DataFrame) -> pd.DataFrame:
+    """对每个充电事件打分"""
+    soc_s = ev['soc_start'].fillna(50)
+    soc_e = ev['soc_end'].fillna(0)
+
+    # ① 低SOC起充（深放后快充，极化损伤大）
+    ev['r_low_soc_start'] = (soc_s < CHARGE_SOC_START_LOW).astype(int)
+
+    # ② 满充（SOC≥98%，长期满充加速正极老化）
+    ev['r_full_charge'] = (soc_e >= SOC_FULL_ZONE).astype(int)
+
+    # ③ 高SOC区充电（起点≥90%继续充电）
+    ev['r_high_soc_continued'] = (
+        (soc_s >= SOC_HIGH_ZONE) & (soc_e >= SOC_HIGH_ZONE)
+    ).astype(int)
+
+    # ④ 充电功率超额
+    if 'power_max_w' in ev.columns:
+        power_limit = np.where(
+            ev['is_fast']==1,
+            FAST_CHARGE_POWER_MIN * 1.5,   # 快充>15kW
+            SLOW_CHARGE_POWER_MAX * 1.2,   # 慢充>8.4kW
+        )
+        over_ratio = np.clip(
+            (ev['power_max_w'].fillna(0) - power_limit) /
+            np.maximum(power_limit, 1), 0, 1
+        )
+        ev['r_overpower'] = (over_ratio * 0.15).clip(0, 0.15)
+    else:
+        ev['r_overpower'] = 0.0
+
+    # ⑤ 充电温度过高
+    if 'max_temp' in ev.columns:
+        temp_over = (ev['max_temp'].fillna(0) - CHARGE_TEMP_MAX).clip(lower=0)
+        ev['r_overtemp']    = (ev['max_temp'].fillna(0) > CHARGE_TEMP_MAX).astype(int)
+        ev['r_overtemp_val'] = np.clip(temp_over / 10.0, 0, 0.20)
+    else:
+        ev['r_overtemp']     = 0
+        ev['r_overtemp_val'] = 0.0
+
+    # ⑥ 充电末段压差
+    if 'max_volt_diff' in ev.columns:
+        vd_over = (ev['max_volt_diff'].fillna(0) - VOLT_DIFF_CHARGE_END).clip(lower=0)
+        ev['r_volt_diff'] = np.clip(vd_over / 0.10, 0, 0.15)
+    else:
+        ev['r_volt_diff'] = 0.0
+
+    # ⑦ 灰色区间
+    if 'in_grey_zone' in ev.columns:
+        ev['r_grey_zone'] = (ev['in_grey_zone'] > 0).astype(int) * 0.05
+    else:
+        ev['r_grey_zone'] = 0.0
+
+    # 单事件原始得分
+    ev['event_risk_raw'] = (
+        ev['r_low_soc_start']      * 0.20 +
+        ev['r_full_charge']        * 0.15 +
+        ev['r_high_soc_continued'] * 0.10 +
+        ev['r_overpower']                  +
+        ev['r_overtemp_val']               +
+        ev['r_volt_diff']                  +
+        ev['r_grey_zone']
+    )
+
+    # 快充权重加成
+    ev['event_risk'] = (
+        ev['event_risk_raw'] * ev['chg_weight']
+    ).clip(0, 1)
+
+    return ev
+
+
+# ───────────────────────────────────────────────────────────────
+def _calc_high_soc_park_risk(df: pd.DataFrame) -> float:
+    """高SOC停置风险"""
+    if 'soc' not in df.columns or 'scene_tag' not in df.columns:
+        return 0.0
+    park_high = (
+        df['scene_tag'].isin(['rest_on','rest_off']) &
+        (pd.to_numeric(df['soc'], errors='coerce').fillna(0) >= SOC_HIGH_ZONE)
+    )
+    return float(np.clip(park_high.sum() / 100, 0, 1))
+
+
+def _zero_result():
+    return {
+        'charge_risk_score':   0.0,
+        'charge_risk_base':    0.0,
+        'high_soc_park_risk':  0.0,
+        'charge_done_risk':    0.0,
+        'charge_event_cnt':    0,
+        'fast_charge_cnt':     0,
+        'slow_charge_cnt':     0,
+        'full_charge_cnt':     0,
+        'overtemp_cnt':        0,
+        'fast_charge_ratio':   0.0,
+        'charge_risk_mean':    0.0,
+        'charge_risk_max':     0.0,
+    }
+```
+
+---
+
+# 📄 battery_risk/modules/load_risk.py
+
+```python
+"""
+battery_risk/modules/load_risk.py
+L2d 负荷风险评分
+"""
+
+import numpy as np
+import pandas as pd
+
+from battery_risk.config import (
+    LOAD_CURRENT_HIGH, LOAD_DISCHARGE_CURRENT_HIGH,
+    LOAD_POWER_HIGH_KW, LOAD_DISCHARGE_POWER_HIGH,
+    LOAD_SOC_LOW, LOAD_SPEED_HIGH,
+    MOTOR_TEMP_HIGH, CONTROLLER_TEMP_HIGH,
+    HARD_ACC_THRESHOLD, HARD_BRAKE_THRESHOLD,
+    DISCHARGE_CURRENT_WARNING, DISCHARGE_CURRENT_HIGH,
+    SOC_LOW_ZONE, SOC_CRITICAL_LOW,
+    SPEED_HIGH, REGEN_SPEED_MIN,
+    MSTATE_GEN,
+)
+
+
+def calc_load_risk(df: pd.DataFrame) -> dict:
+    """
+    负荷风险评分主入口
+    输入：单辆车已完成工况识别的DataFrame
+    输出：{'load_risk_score': float, ...}
+    """
+    if df.empty:
+        return _zero_result()
+
+    tbc   = pd.to_numeric(df.get('tbc',   0), errors='coerce').fillna(0)
+    tbv   = pd.to_numeric(df.get('tbv',   0), errors='coerce').fillna(0)
+    speed = pd.to_numeric(df.get('speed', 0), errors='coerce').fillna(0)
+    soc   = pd.to_numeric(df.get('soc',  50), errors='coerce').fillna(50)
+    tag   = df.get('scene_tag', pd.Series('unknown', index=df.index))
+
+    # 电机温度
+    mtemp0 = pd.to_numeric(df.get('mtemp_0',  pd.Series(np.nan, index=df.index)),
+                            errors='coerce').fillna(0)
+    mtemp1 = pd.to_numeric(df.get('mtemp_1',  pd.Series(np.nan, index=df.index)),
+                            errors='coerce').fillna(0)
+    # 控制器温度
+    mctemp0 = pd.to_numeric(df.get('mctemp_0', pd.Series(np.nan, index=df.index)),
+                             errors='coerce').fillna(0)
+    mctemp1 = pd.to_numeric(df.get('mctemp_1', pd.Series(np.nan, index=df.index)),
+                             errors='coerce').fillna(0)
+    # 加速度
+    ad = pd.to_numeric(df.get('ad', pd.Series(np.nan, index=df.index)),
+                       errors='coerce')
+
+    is_drive = tag == 'drive'
+
+    # ── 子项1: 大电流放电 ────────────────────────────────────
+    high_discharge    = tbc > DISCHARGE_CURRENT_HIGH
+    warning_discharge = tbc > DISCHARGE_CURRENT_WARNING
+    persist_high = (
+        high_discharge.rolling(10, min_periods=1).sum() >= 8
+    )
+    s_high_current = float(np.clip(
+        high_discharge.mean()    * 0.5 +
+        warning_discharge.mean() * 0.2 +
+        persist_high.mean()      * 0.3,
+        0, 1
+    ))
+
+    # ── 子项2: 低SOC高负荷联合 ──────────────────────────────
+    low_soc_high_load  = (soc < SOC_LOW_ZONE)     & (tbc > DISCHARGE_CURRENT_WARNING)
+    crit_soc_load      = (soc < SOC_CRITICAL_LOW)  & (tbc > 50.0)
+    s_soc_load = float(np.clip(
+        low_soc_high_load.mean() * 0.6 +
+        crit_soc_load.mean()     * 0.4,
+        0, 1
+    ))
+
+    # ── 子项3: 高速大电流 ────────────────────────────────────
+    high_speed_load = (speed > SPEED_HIGH) & (tbc > DISCHARGE_CURRENT_HIGH)
+    s_speed_load    = float(np.clip(high_speed_load.mean() * 5.0, 0, 1))
+
+    # ── 子项4: 电机温度 ──────────────────────────────────────
+    any_motor_hot = (mtemp0 > MOTOR_TEMP_HIGH) | (mtemp1 > MOTOR_TEMP_HIGH)
+    s_motor_temp  = float(np.clip(any_motor_hot.mean() * 3.0, 0, 1))
+
+    # ── 子项5: 控制器温度 ────────────────────────────────────
+    any_ctrl_hot = (mctemp0 > CONTROLLER_TEMP_HIGH) | \
+                   (mctemp1 > CONTROLLER_TEMP_HIGH)
+    s_ctrl_temp  = float(np.clip(any_ctrl_hot.mean() * 3.0, 0, 1))
+
+    # ── 子项6: 急加减速 ──────────────────────────────────────
+    if not ad.isna().all():
+        hard_acc   = ad > HARD_ACC_THRESHOLD
+        hard_brake = ad < HARD_BRAKE_THRESHOLD
+        hard_ops   = hard_acc | hard_brake
+        s_hard_ops = float(np.clip(hard_ops.mean() * 2.0, 0, 1))
+    else:
+        s_hard_ops = 0.0
+
+    # ── 子项7: 制动回收大电流 ────────────────────────────────
+    regen_mask     = tag == 'regen_braking'
+    regen_high_cur = regen_mask & (tbc.abs() > 80.0)
+    s_regen_load   = float(np.clip(regen_high_cur.mean() * 5.0, 0, 1))
+
+    # ── 综合得分 ─────────────────────────────────────────────
+    load_risk_score = float(np.clip(
+        s_high_current * 0.30 +
+        s_soc_load     * 0.25 +
+        s_speed_load   * 0.15 +
+        s_motor_temp   * 0.10 +
+        s_ctrl_temp    * 0.10 +
+        s_hard_ops     * 0.05 +
+        s_regen_load   * 0.05,
+        0, 1
+    ))
+
+    return {
+        'load_risk_score':         load_risk_score,
+        'load_high_current_score': round(s_high_current, 4),
+        'load_soc_load_score':     round(s_soc_load,     4),
+        'load_speed_load_score':   round(s_speed_load,   4),
+        'load_motor_temp_score':   round(s_motor_temp,   4),
+        'load_ctrl_temp_score':    round(s_ctrl_temp,    4),
+        'load_hard_ops_score':     round(s_hard_ops,     4),
+        'load_regen_score':        round(s_regen_load,   4),
+        'max_discharge_current':   round(float(tbc.max()), 2),
+        'high_discharge_ratio':    round(float(high_discharge.mean()), 4),
+    }
+
+
+def _zero_result():
+    return {
+        'load_risk_score':         0.0,
+        'load_high_current_score': 0.0,
+        'load_soc_load_score':     0.0,
+        'load_speed_load_score':   0.0,
+        'load_motor_temp_score':   0.0,
+        'load_ctrl_temp_score':    0.0,
+        'load_hard_ops_score':     0.0,
+        'load_regen_score':        0.0,
+        'max_discharge_current':   0.0,
+        'high_discharge_ratio':    0.0,
+    }
+```
+
+---
+
+# 📄 battery_risk/modules/fault_risk.py
+
+```python
+"""
+battery_risk/modules/fault_risk.py
+L2e 故障风险评分
+"""
+
+import numpy as np
+import pandas as pd
+
+from battery_risk.config import (
+    FAULT_INSULATION_LOW, FAULT_INSULATION_WARN,
+    FAULT_INSULATION_SLOPE,
+    HALVL_SERIOUS, BATTERY_FAULT_CNT_TH,
+    MULTI_SYSTEM_FAULT_TH, FAULT_CODE_WEIGHT,
+    VSTATE_OFF,
+)
+
+
+def calc_fault_risk(df: pd.DataFrame) -> dict:
+    """
+    故障风险评分主入口
+    输入：单辆车已完成工况识别的DataFrame
+    输出：{'fault_risk_score': float, ...}
+    """
+    if df.empty:
+        return _zero_result()
+
+    tbc    = pd.to_numeric(df.get('tbc',   0), errors='coerce').fillna(0)
+    vstate = df.get('vstate', pd.Series(VSTATE_OFF, index=df.index))
+    inre   = pd.to_numeric(
+        df.get('inre', pd.Series(9999.0, index=df.index)),
+        errors='coerce'
+    ).fillna(9999.0)
+    halvl  = pd.to_numeric(df.get('halvl', 0), errors='coerce').fillna(0)
+    aobf   = pd.to_numeric(df.get('aobf',  0), errors='coerce').fillna(0)
+    aodmf  = pd.to_numeric(df.get('aodmf', 0), errors='coerce').fillna(0)
+    aoef   = pd.to_numeric(df.get('aoef',  0), errors='coerce').fillna(0)
+    aoof   = pd.to_numeric(df.get('aoof',  0), errors='coerce').fillna(0)
+    tag    = df.get('scene_tag', pd.Series('unknown', index=df.index))
+
+    # ── 子项1: 绝缘电阻 (最重要) ─────────────────────────────
+    # 过滤掉0值（传感器断开时可能为0）
+    inre_valid = inre[inre > 0]
+
+    danger_insul  = (inre < FAULT_INSULATION_LOW) & (inre > 0)
+    warning_insul = (inre < FAULT_INSULATION_WARN) & (inre > 0)
+
+    # 绝缘下降趋势
+    s_trend = 0.0
+    if len(inre_valid) > 30:
+        try:
+            slope_series = inre.rolling(30, min_periods=10).apply(
+                lambda x: np.polyfit(range(len(x)), x, 1)[0]
+                if (~np.isnan(x)).sum() >= 5 else 0,
+                raw=True
+            )
+            trend_bad = (slope_series < FAULT_INSULATION_SLOPE)
+            s_trend   = float(np.clip(trend_bad.mean() * 3.0, 0, 1))
+        except Exception:
+            pass
+
+    s_insulation = float(np.clip(
+        danger_insul.mean()  * 1.5 +    # 危险直接超满
+        warning_insul.mean() * 0.4 +
+        s_trend              * 0.3,
+        0, 1
+    ))
+
+    # ── 子项2: 告警等级 ──────────────────────────────────────
+    severe_alarm  = (halvl >= HALVL_SERIOUS)
+    general_alarm = (halvl >= 1)
+    persist_alarm = (
+        severe_alarm.rolling(10, min_periods=1).sum() >= 3
+    )
+    s_alarm = float(np.clip(
+        severe_alarm.mean()  * 0.6 +
+        general_alarm.mean() * 0.3 +
+        persist_alarm.mean() * 0.4,
+        0, 1
+    ))
+
+    # ── 子项3: 故障码数量 ────────────────────────────────────
+    high_fault = (aobf > BATTERY_FAULT_CNT_TH)
+    any_fault  = (aobf > 0)
+    s_fault_cnt = float(np.clip(
+        high_fault.mean() * 0.7 +
+        any_fault.mean()  * 0.3,
+        0, 1
+    ))
+
+    # ── 子项4: 多系统同时故障 ────────────────────────────────
+    fault_systems = (
+        (aobf  > 0).astype(int) +
+        (aodmf > 0).astype(int) +
+        (aoef  > 0).astype(int) +
+        (aoof  > 0).astype(int)
+    )
+    multi_fault = (fault_systems >= MULTI_SYSTEM_FAULT_TH)
+    s_multi     = float(np.clip(multi_fault.mean() * 2.0, 0, 1))
+
+    # ── 子项5: 熄火异常放电（暗电流）────────────────────────
+    off_discharge   = (vstate == VSTATE_OFF) & (tbc > 10.0)
+    s_off_discharge = float(np.clip(off_discharge.mean() * 5.0, 0, 1))
+
+    # ── 子项6: 上电静置异常电流 ──────────────────────────────
+    rest_abnormal = (tag == 'rest_on') & (tbc.abs() > 5.0)
+    s_rest_abn    = float(np.clip(rest_abnormal.mean() * 5.0, 0, 1))
+
+    # ── 综合得分 ─────────────────────────────────────────────
+    fault_risk_score = float(np.clip(
+        s_insulation    * 0.40 +
+        s_alarm         * 0.30 +
+        s_fault_cnt     * 0.15 +
+        s_multi         * 0.10 +
+        s_off_discharge * 0.03 +
+        s_rest_abn      * 0.02,
+        0, 1
+    ))
+
+    return {
+        'fault_risk_score':         fault_risk_score,
+        'fault_insulation_score':   round(s_insulation,    4),
+        'fault_alarm_score':        round(s_alarm,         4),
+        'fault_code_cnt_score':     round(s_fault_cnt,     4),
+        'fault_multi_system_score': round(s_multi,         4),
+        'fault_off_discharge_score':round(s_off_discharge, 4),
+        'fault_rest_abnormal_score':round(s_rest_abn,      4),
+        'inre_min':                 round(float(inre_valid.min())
+                                          if len(inre_valid)>0 else 9999.0, 2),
+        'inre_mean':                round(float(inre_valid.mean())
+                                          if len(inre_valid)>0 else 9999.0, 2),
+        'halvl_max':                int(halvl.max()),
+        'aobf_max':                 int(aobf.max()),
+        'danger_insul_ratio':       round(float(danger_insul.mean()), 4),
+        'severe_alarm_ratio':       round(float(severe_alarm.mean()), 4),
+    }
+
+
+def _zero_result():
+    return {
+        'fault_risk_score':          0.0,
+        'fault_insulation_score':    0.0,
+        'fault_alarm_score':         0.0,
+        'fault_code_cnt_score':      0.0,
+        'fault_multi_system_score':  0.0,
+        'fault_off_discharge_score': 0.0,
+        'fault_rest_abnormal_score': 0.0,
+        'inre_min':                  9999.0,
+        'inre_mean':                 9999.0,
+        'halvl_max':                 0,
+        'aobf_max':                  0,
+        'danger_insul_ratio':        0.0,
+        'severe_alarm_ratio':        0.0,
+    }
+```
+
+---
+
+# 📄 battery_risk/modules/fusion.py
+
+```python
+"""
+battery_risk/modules/fusion.py
+L3 综合融合模块（独立函数版，也可被pipeline直接调用）
+"""
+
+import numpy as np
+
+from battery_risk.config import (
+    FUSION_WEIGHTS,
+    RULE_ESCALATE_THRESHOLD,
+    RISK_LEVEL_THRESHOLDS,
+    RISK_LEVEL_CN,
+    RISK_LEVEL_ACTION,
+    RISK_LEVEL_CODE,
+)
+
+
+def fuse_risk_scores(
+    volt_risk_score:   float,
+    temp_risk_score:   float,
+    charge_risk_score: float,
+    load_risk_score:   float,
+    fault_risk_score:  float,
+    vin:               str = '',
+) -> dict:
+    """
+    L3 加权融合 + 规则升档
+
+    输入：5个子维度风险分（0~1）
+    输出：融合结果字典
+
+    算法：
+    1. 加权求和（权重见FUSION_WEIGHTS）
+    2. 规则升档：任意子分>0.75 → 强制final_score≥0.31（至少Medium）
+    3. 等级判定：[0,0.3]→Low, (0.3,0.6]→Medium, (0.6,1.0]→High, >1.0→Critical
+    """
+    sub_scores = {
+        'volt_risk_score':   max(0.0, min(1.0, float(volt_risk_score))),
+        'temp_risk_score':   max(0.0, min(1.0, float(temp_risk_score))),
+        'charge_risk_score': max(0.0, min(1.0, float(charge_risk_score))),
+        'load_risk_score':   max(0.0, min(1.0, float(load_risk_score))),
+        'fault_risk_score':  max(0.0, min(1.0, float(fault_risk_score))),
+    }
+
+    # 加权求和
+    weighted_sum = sum(
+        sub_scores[k] * w
+        for k, w in FUSION_WEIGHTS.items()
+    )
+    final_score = float(np.clip(weighted_sum, 0.0, 1.0))
+
+    # 规则升档
+    rule_escalated = any(
+        v > RULE_ESCALATE_THRESHOLD
+        for v in sub_scores.values()
+    )
+    if rule_escalated and final_score < 0.31:
+        final_score = 0.31
+
+    # 等级判定
+    level = 'Low'
+    for threshold, lv in RISK_LEVEL_THRESHOLDS:
+        if final_score <= threshold:
+            level = lv
+            break
+
+    return {
+        'vin':              vin,
+        'final_risk_score': round(final_score, 6),
+        'risk_level':       level,
+        'risk_level_cn':    RISK_LEVEL_CN[level],
+        'risk_level_code':  RISK_LEVEL_CODE[level],
+        'action':           RISK_LEVEL_ACTION[level],
+        'rule_escalated':   int(rule_escalated),
+        **{k: round(v, 6) for k, v in sub_scores.items()},
+        'weight_volt':      FUSION_WEIGHTS['volt_risk_score'],
+        'weight_temp':      FUSION_WEIGHTS['temp_risk_score'],
+        'weight_charge':    FUSION_WEIGHTS['charge_risk_score'],
+        'weight_load':      FUSION_WEIGHTS['load_risk_score'],
+        'weight_fault':     FUSION_WEIGHTS['fault_risk_score'],
+    }
+
+
+def get_risk_level(score: float) -> str:
+    """单独根据分数获取等级"""
+    for threshold, level in RISK_LEVEL_THRESHOLDS:
+        if score <= threshold:
+            return level
+    return 'Critical'
+
+
+def explain_risk(result: dict) -> str:
+    """
+    生成风险解释文字（供报告使用）
+    输入：fuse_risk_scores返回的字典
+    """
+    lines = [
+        f"综合风险评分：{result['final_risk_score']:.4f}",
+        f"风险等级：{result['risk_level_cn']}",
+        f"处置建议：{result['action']}",
+        "",
+        "各维度得分：",
+        f"  电压风险：{result['volt_risk_score']:.4f}  (权重 {result['weight_volt']})",
+        f"  温度风险：{result['temp_risk_score']:.4f}  (权重 {result['weight_temp']})",
+        f"  充电行为：{result['charge_risk_score']:.4f}  (权重 {result['weight_charge']})",
+        f"  负荷风险：{result['load_risk_score']:.4f}  (权重 {result['weight_load']})",
+        f"  故障风险：{result['fault_risk_score']:.4f}  (权重 {result['weight_fault']})",
+    ]
+    if result.get('rule_escalated'):
+        lines.append("\n⚠️  已触发规则升档（某维度极端异常）")
+    return '\n'.join(lines)
+```
+
+---
+
+# 📋 全量文件汇总
+
+| 文件路径 | 代码行数 | 核心功能 |
 |---|---|---|
-| `ImportError: DTYPE_DOWNCAST_MAP` | config.py未定义 | 加入config.py |
-| `ImportError: GEAR_HAS_DRIVE_SET` | gear集合常量缺失 | 补全12种×所有维度集合 |
-| `ImportError: GEAR_DEFAULT` | 默认值常量缺失 | 加入`GEAR_DEFAULT='无驱动力无制动力停车P挡'` |
-| `ArrayMemoryError: 4.14GiB` | df.copy()触发block合并 | Pipeline改为按VIN批次流式处理 |
-| gear字段用数字编码 | 数据库实际存中文字符串 | 全部改为实际字符串值 |
-| cstate用`1/2/3` | 实际为中文字符串 | 全部改为实际字符串值 |
-
----
-
-## 十、后续开发计划
-
-```
-□ visualize.py    — 各维度风险可视化（雷达图/趋势图/热力图）
-□ report.py       — 自动生成车辆风险报告（PDF/HTML）
-□ 在线预测模式    — 实时流数据接入（Kafka/Flink）
-□ 模型融合        — 在规则基础上叠加ML模型（IsolationForest/XGBoost）
-□ 历史趋势分析    — 按周/月统计风险变化趋势
-```
+| `main.py` | ~70行 | 主入口，打印结果分布 |
+| `battery_risk/__init__.py` | ~3行 | 包声明 |
+| `battery_risk/config.py` | ~280行 | 全部常量（唯一真相来源） |
+| `battery_risk/pipeline.py` | ~180行 | 按VIN批次内存安全调度 |
+| `battery_risk/utils.py` | ~50行 | 通用工具函数 |
+| `battery_risk/modules/__init__.py` | ~2行 | 模块包声明 |
+| `battery_risk/modules/operating_scene.py` | ~380行 | L1工况识别（20+种标签） |
+| `battery_risk/modules/voltage_risk.py` | ~130行 | L2a电压风险（6子项） |
+| `battery_risk/modules/temperature_risk.py` | ~160行 | L2b温度风险（6子项） |
+| `battery_risk/modules/charge_risk.py` | ~170行 | L2c充电行为风险（7子项） |
+| `battery_risk/modules/load_risk.py` | ~130行 | L2d负荷风险（7子项） |
+| `battery_risk/modules/fault_risk.py` | ~150行 | L2e故障风险（6子项） |
+| `battery_risk/modules/fusion.py` | ~90行 | L3加权融合+规则升档 |
