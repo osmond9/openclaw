@@ -798,3 +798,577 @@ RiskScore = P(abnormal)
 
 6. **市场圈车**
    - 基于风险分和召回/圈定比例联合定阈
+
+
+
+
+
+
+
+
+# 🔋 动力电池风险识别系统 - 项目完整文档
+
+## 📋 目录
+- [项目概述](#项目概述)
+- [系统架构](#系统架构)
+- [目录结构](#目录结构)
+- [核心模块说明](#核心模块说明)
+- [数据流程](#数据流程)
+- [配置说明](#配置说明)
+- [运行指南](#运行指南)
+- [关键算法](#关键算法)
+- [已知问题与修复](#已知问题与修复)
+
+---
+
+## 项目概述
+
+### 业务目标
+识别新能源汽车动力电池的潜在风险，通过多维度分析预测电池热失控、性能衰减等安全隐患。
+
+### 技术方案
+- **三层架构**：工况识别 → 多维度风险评分 → 融合决策
+- **对比分析**：风险车辆 vs 正常车辆的行为模式差异
+- **内存优化**：分批处理大规模Parquet数据（百万级记录）
+
+### 核心特性
+1. **工况识别**：15种驾驶/充电/静置场景自动标注
+2. **五维风险评分**：电压、温度、充电、负荷、故障
+3. **高温高SOC静置专项**：热失控前兆信号捕捉
+4. **VIN级标签聚合**：从行级 `risk_label` 自动生成车辆级 `is_risk_vehicle`
+5. **可视化报告**：雷达图、箱线图、散点图等
+
+---
+
+## 系统架构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    原始数据（Parquet）                        │
+│  - 8M+ 条记录，15辆车，69个字段                               │
+│  - 包含 risk_label (行级标签: 0/1)                            │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│              L0: VIN级标签聚合 (Pipeline)                     │
+│  - 扫描 risk_label，按VIN聚合                                 │
+│  - 规则：risk_label=1 的记录比例 > 30% → is_risk_vehicle=1   │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│              L1: 工况识别 (Operating Scene)                   │
+│  - 充电类型：快充/慢充/行驶充电/制动回收                       │
+│  - 驾驶场景：加速/匀速/减速/怠速                              │
+│  - 静置场景：rest_on / rest_off / rest_off_hot_soc (新增)    │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│          L2: 五维风险评分 (Risk Modules)                      │
+│  ┌──────────────┬──────────────┬──────────────┐             │
+│  │ 电压风险     │ 温度风险     │ 充电风险     │             │
+│  │ - 过压/欠压  │ - 高温       │ - 过流       │             │
+│  │ - 压差       │ - 温差       │ - 过充       │             │
+│  │ - 一致性     │ - 静置温升★  │ - 频繁充电   │             │
+│  └──────────────┴──────────────┴──────────────┘             │
+│  ┌──────────────┬──────────────┐                            │
+│  │ 负荷风险     │ 故障风险     │                            │
+│  │ - 大电流     │ - 故障码     │                            │
+│  │ - 深度放电   │ - 报警频次   │                            │
+│  └──────────────┴──────────────┘                            │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│              L3: 融合决策 (Fusion)                            │
+│  - 加权融合：volt×0.25 + temp×0.25 + charge×0.20 + ...      │
+│  - 规则升级：任一子项 > 0.7 → 强制升级到 Medium              │
+│  - 风险等级：Low / Medium / High / Critical                  │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│              L4: 对比分析 (Comparison)                        │
+│  - 风险车辆 vs 正常车辆                                       │
+│  - 高温高SOC静置时长统计（小时）                              │
+│  - Mann-Whitney U 显著性检验                                 │
+│  - 可视化：雷达图、箱线图、散点图                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 目录结构
+
+```
+HV_Leakage/
+├── battery_risk/                    # 核心包
+│   ├── __init__.py
+│   ├── config.py                    # 全局配置（阈值、权重、路径）
+│   ├── pipeline.py                  # 主流程控制器（内存安全、分批处理）
+│   │
+│   └── modules/                     # 功能模块
+│       ├── __init__.py
+│       ├── operating_scene.py       # L1: 工况识别
+│       ├── voltage_risk.py          # L2.1: 电压风险
+│       ├── temperature_risk.py      # L2.2: 温度风险（含静置温升）
+│       ├── charge_risk.py           # L2.3: 充电风险
+│       ├── load_risk.py             # L2.4: 负荷风险
+│       ├── fault_risk.py            # L2.5: 故障风险
+│       └── park_soc_temp_risk.py    # (已废弃，功能合并到 temperature_risk)
+│
+├── data/
+│   ├── raw/                         # 原始数据
+│   └── labeled/
+│       └── all_vehicles_labeled.parquet  # 带 risk_label 的标注数据
+│
+├── output/
+│   ├── risk_results.csv             # 最终结果（每行一辆车）
+│   └── figures/                     # 可视化图表
+│       ├── risk_comparison.png
+│       └── hot_soc_static_duration_comparison.png
+│
+├── main.py                          # 入口脚本
+├── requirements.txt                 # 依赖包
+└── README.md                        # 项目说明
+```
+
+---
+
+## 核心模块说明
+
+### 1. `config.py` - 全局配置中心
+
+```python
+# 数据路径
+LABELED_DATA_PATH = 'data/labeled/all_vehicles_labeled.parquet'
+OUTPUT_RISK_PATH  = 'output/risk_results.csv'
+FIGURE_DIR        = 'output/figures'
+
+# 工况识别阈值
+VSTATE_ON  = '车辆启动状态'
+VSTATE_OFF = '熄火'
+SPEED_STATIC = 2.0  # km/h，低于此值视为静止
+
+# 风险阈值
+VOLT_OVER_TH  = 4.25   # V，单体过压
+VOLT_UNDER_TH = 2.80   # V，单体欠压
+TEMP_MAX_WARNING = 40  # °C，高温预警
+SOC_HIGH_ZONE = 90     # %，高SOC区间
+
+# 融合权重
+FUSION_WEIGHTS = {
+    'volt_risk_score':   0.25,
+    'temp_risk_score':   0.25,
+    'charge_risk_score': 0.20,
+    'load_risk_score':   0.15,
+    'fault_risk_score':  0.15,
+}
+
+# 风险等级阈值
+RISK_LEVEL_THRESHOLDS = [
+    (0.30, 'Low'),
+    (0.60, 'Medium'),
+    (0.85, 'High'),
+    (1.00, 'Critical'),
+]
+```
+
+**关键参数说明**：
+- `SPEED_STATIC`：区分静止/行驶的速度阈值
+- `TEMP_MAX_WARNING`：高温预警线（影响 `rest_off_hot_soc` 工况识别）
+- `SOC_HIGH_ZONE`：高SOC阈值（影响静置风险评分）
+- `FUSION_WEIGHTS`：各维度权重（总和=1.0）
+
+---
+
+### 2. `pipeline.py` - 主流程控制器
+
+**核心职责**：
+1. **内存安全**：分批加载VIN（默认2辆/批），避免OOM
+2. **VIN级标签聚合**：扫描 `risk_label` 列，生成 `is_risk_vehicle`
+3. **逐车处理**：工况识别 → 五维评分 → 融合决策
+4. **结果输出**：CSV + 统计报告
+
+**关键方法**：
+```python
+class BatteryRiskPipeline:
+    def _build_vin_label_map(self):
+        """扫描 risk_label，按VIN聚合为 is_risk_vehicle"""
+        # 规则：risk_label=1 的记录比例 > 30% → 风险车辆
+    
+    def _process_single_vin(self, vin, df_vin):
+        """单车处理流程"""
+        # L1: 工况识别
+        df_vin = identify_operating_scenes(df_vin)
+        
+        # L2: 五维评分
+        volt_res   = calc_voltage_risk(df_vin)
+        temp_res   = calc_temperature_risk(df_vin)
+        charge_res = calc_charge_risk(df_vin)
+        load_res   = calc_load_risk(df_vin)
+        fault_res  = calc_fault_risk(df_vin)
+        
+        # L3: 融合
+        final_score, level, escalated = self._fuse(sub_scores)
+        
+        return {
+            'vin': vin,
+            'is_risk_vehicle': self.vin_label_map.get(vin, -1),
+            'final_risk_score': final_score,
+            'risk_level': level,
+            ...
+        }
+```
+
+---
+
+### 3. `operating_scene.py` - 工况识别
+
+**输入**：原始数据（vstate, cstate, speed, soc, maxt, tbc 等）  
+**输出**：新增列 `scene_tag`, `charge_type`, `drive_scene`
+
+**15种工况标签**：
+```python
+# 充电类型 (charge_type)
+'fast_charge'      # 快充（电流 > 50A）
+'slow_charge'      # 慢充（电流 10~50A）
+'drive_charge'     # 行驶充电（速度 > 2 km/h）
+'regen_braking'    # 制动回收（负电流 + 减速）
+'no_charge'        # 未充电
+
+# 驾驶场景 (drive_scene)
+'accel'            # 加速（电流 > 20A + 速度上升）
+'cruise'           # 匀速（速度稳定）
+'decel'            # 减速（速度下降）
+'idle'             # 怠速（启动但静止）
+'static'           # 静止
+
+# 综合工况 (scene_tag)
+'fast_charge', 'slow_charge', 'drive_charge', 'regen_braking'
+'drive'            # 行驶（速度 > 2 km/h）
+'rest_on'          # 启动静置
+'rest_off'         # 熄火静置（普通）
+'rest_off_hot_soc' # ★ 熄火 + 高温(≥35°C) + 高SOC(≥80%)（最危险）
+'unknown'          # 未知
+```
+
+**关键逻辑**：
+```python
+def _classify_scene_tag(df, cond, cols):
+    # 熄火静置细分（新增）
+    is_rest_off_hot_soc = (
+        c['c_voff'] &              # 熄火
+        (maxt >= 35.0) &           # 高温
+        (soc >= 80.0)              # 高SOC
+    )
+    is_rest_off = c['c_voff'] & ~is_rest_off_hot_soc
+    
+    return np.select(
+        [..., is_rest_off_hot_soc, is_rest_on, is_rest_off, ...],
+        [..., 'rest_off_hot_soc', 'rest_on', 'rest_off', ...],
+        default='unknown'
+    )
+```
+
+---
+
+### 4. `temperature_risk.py` - 温度风险评分
+
+**核心子项**（6个）：
+1. **高温占比**：maxt > 40°C 的记录比例
+2. **极端高温**：maxt > 50°C 的记录比例（加权×2）
+3. **温差风险**：单体最大温差 > 5°C
+4. **快充温升**：快充时温度上升速率
+5. **静置温升**（★重点）：
+   - **高温高SOC静置**（`rest_off_hot_soc`）：35~50°C 线性映射到 0~1 分
+   - 普通静置：温升 > 5°C 或斜率 > 0.1°C/条
+6. **温度波动**：标准差 > 8°C
+
+**关键代码**：
+```python
+# 子项5: 静置温升（最危险信号）
+hot_soc_mask = tag == 'rest_off_hot_soc'
+if hot_soc_mask.sum() > 5:
+    hot_soc_maxt = maxt[hot_soc_mask].dropna()
+    mean_temp = float(hot_soc_maxt.mean())
+    # 35°C→0分, 50°C→1分（线性）
+    base = np.clip((mean_temp - 35.0) / 15.0, 0, 1)
+    s_static_rise = base * 0.5 + peak * 0.5
+    
+    # 若有温升趋势，额外加分
+    slope = np.polyfit(range(len(hot_soc_maxt)), hot_soc_maxt.values, 1)[0]
+    if slope > 0.05:
+        s_static_rise = np.clip(s_static_rise + 0.2, 0, 1)
+```
+
+---
+
+### 5. `main.py` - 入口脚本
+
+**主要功能**：
+1. 调用 `BatteryRiskPipeline.run()` 执行全流程
+2. 打印风险等级分布
+3. **对比分析**：`_run_comparison()` + `_analyze_hot_soc_static()`
+4. 生成可视化报告
+
+**对比分析核心**：
+```python
+def _analyze_hot_soc_static(risk_df, normal_df):
+    """
+    高温高SOC静置专项对比
+    - 从原始数据按VIN读取
+    - 计算 rest_off_hot_soc 工况的实际时长（小时）
+    - Mann-Whitney U 显著性检验
+    - 4图可视化：箱线图、柱状图、温度对比、散点图
+    """
+    
+    def _calc_scene_duration(ts_arr, tag_arr, target_tag):
+        """计算指定工况的总时长（小时）"""
+        # 找连续段 → 计算时间差 → 累加
+        # 单条记录用前后间隔估算
+        # 异常值过滤（单段 > 24h）
+```
+
+---
+
+## 数据流程
+
+### 输入数据格式（Parquet）
+
+| 字段 | 类型 | 说明 | 示例 |
+|---|---|---|---|
+| `vin` | str | 车辆识别码 | LC0DF4CD0R6051133 |
+| `date` | str | 日期 | 2025-10-24 |
+| `time` | str | 时间（可能含日期） | 2025-10-24 08:47:20 |
+| `vstate` | str | 车辆状态 | 车辆启动状态 / 熄火 |
+| `cstate` | str | 充电状态 | 未充电状态 / 停车充电 / 行驶充电 |
+| `speed` | float | 车速 (km/h) | 0.0 ~ 183.8 |
+| `soc` | float | SOC (%) | 0 ~ 100 |
+| `maxt` | float | 最高单体温度 (°C) | -15 ~ 63 |
+| `mint` | float | 最低单体温度 (°C) | -15 ~ 63 |
+| `tbc` | float | 总电流 (A) | -300 ~ 300 |
+| `tbv` | float | 总电压 (V) | 200 ~ 450 |
+| `maxbuv` | float | 最高单体电压 (V) | 2.5 ~ 4.3 |
+| `minbuv` | float | 最低单体电压 (V) | 2.5 ~ 4.3 |
+| `risk_label` | int | **行级标签** | 0 (正常) / 1 (风险) |
+
+**关键说明**：
+- `risk_label` 是**行级标签**（每条记录一个标签），由外部标注提供
+- Pipeline 会自动聚合为 **VIN级标签** `is_risk_vehicle`（每辆车一个标签）
+
+---
+
+### 输出结果格式（CSV）
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `vin` | str | 车辆识别码 |
+| `is_risk_vehicle` | int | **VIN级标签**（0=正常, 1=风险, -1=未知） |
+| `record_count` | int | 该车记录总数 |
+| `final_risk_score` | float | 综合风险分（0~1） |
+| `risk_level` | str | 风险等级（Low/Medium/High/Critical） |
+| `risk_level_cn` | str | 中文等级（低风险/中风险/高风险/严重风险） |
+| `risk_level_code` | int | 等级编码（0/1/2/3） |
+| `action` | str | 建议措施 |
+| `rule_escalated` | int | 是否规则升级（0/1） |
+| `volt_risk_score` | float | 电压风险分（0~1） |
+| `temp_risk_score` | float | 温度风险分（0~1） |
+| `charge_risk_score` | float | 充电风险分（0~1） |
+| `load_risk_score` | float | 负荷风险分（0~1） |
+| `fault_risk_score` | float | 故障风险分（0~1） |
+
+---
+
+## 配置说明
+
+### 关键阈值调优指南
+
+| 参数 | 默认值 | 影响 | 调优建议 |
+|---|---|---|---|
+| `VIN_RISK_LABEL_RATIO_TH` | 0.3 | VIN级标签聚合阈值 | 提高→风险车辆数减少（更严格） |
+| `TEMP_MAX_WARNING` | 40°C | 高温预警线 | 降低→更敏感（更多高温记录） |
+| `SOC_HIGH_ZONE` | 90% | 高SOC阈值 | 降低→更敏感（更多高SOC记录） |
+| `rest_off_hot_soc` 温度阈值 | 35°C | 高温高SOC静置识别 | 降低→捕捉更多静置风险 |
+| `rest_off_hot_soc` SOC阈值 | 80% | 高温高SOC静置识别 | 降低→捕捉更多静置风险 |
+| `FUSION_WEIGHTS['temp_risk_score']` | 0.25 | 温度维度权重 | 提高→温度风险影响更大 |
+
+**调优场景示例**：
+```python
+# 场景1：风险车辆数为0（标签聚合过严）
+VIN_RISK_LABEL_RATIO_TH = 0.2  # 从0.3降到0.2
+
+# 场景2：想捕捉更多高温高SOC静置风险
+# operating_scene.py 中修改：
+is_rest_off_hot_soc = (
+    c['c_voff'] &
+    (maxt >= 30.0) &  # 从35°C降到30°C
+    (soc >= 75.0)     # 从80%降到75%
+)
+
+# 场景3：温度风险权重不足
+FUSION_WEIGHTS = {
+    'volt_risk_score':   0.20,
+    'temp_risk_score':   0.35,  # 从0.25提高到0.35
+    'charge_risk_score': 0.20,
+    'load_risk_score':   0.15,
+    'fault_risk_score':  0.10,
+}
+```
+
+---
+
+## 运行指南
+
+### 环境准备
+
+```bash
+# 1. 创建虚拟环境
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# 2. 安装依赖
+pip install -r requirements.txt
+
+# requirements.txt 内容：
+# pandas>=2.0.0
+# numpy>=1.24.0
+# pyarrow>=12.0.0
+# scipy>=1.10.0
+# matplotlib>=3.7.0
+```
+
+### 数据准备
+
+```bash
+# 确保数据文件存在
+data/labeled/all_vehicles_labeled.parquet
+
+# 必须包含以下列：
+# - vin, date, time (或 ts)
+# - vstate, cstate, speed, soc, maxt, tbc
+# - risk_label (行级标签: 0/1)
+```
+
+### 运行主流程
+
+```bash
+python main.py
+```
+
+**预期输出**：
+```
+══════════════════════════════════════════════════════════════
+  动力电池风险识别系统  v1.1
+══════════════════════════════════════════════════════════════
+[INFO] 共发现 15 辆车，每批处理 2 辆
+[INFO] 正在聚合VIN级风险标签...
+[INFO] VIN标签聚合完成: 风险=7  正常=8
+
+[INFO] 批次 1/8: ['LC0DF4CD0R6051133', 'LC0DF4CD0R6051147']
+[INFO] 批次加载: 1,234,567 条, 内存: 0.85 GB
+  ✓ VIN=LC0DF4CD0R6051133  [风险]  综合分=0.3245  等级=中风险  耗时=12.3s
+  ✓ VIN=LC0DF4CD0R6051147  [正常]  综合分=0.1865  等级=低风险  耗时=11.8s
+...
+
+══════════════════════════════════════════════════════════════
+  风险等级分布
+══════════════════════════════════════════════════════════════
+  低风险       8 辆  (53.3%)
+  中风险       5 辆  (33.3%)
+  高风险       2 辆  (13.3%)
+
+  平均综合风险分: 0.2456
+  最高综合风险分: 0.4123
+
+══════════════════════════════════════════════════════════════
+  [INFO] 开始高温高SOC静置对比分析...
+══════════════════════════════════════════════════════════════
+[INFO] 标签分布:
+is_risk_vehicle
+1    7
+0    8
+[INFO] 风险车辆: 7 辆 | 正常车辆: 8 辆
+
+─────────────────────────────────────────────────────────────
+  指标              正常车辆均值  风险车辆均值    差值
+─────────────────────────────────────────────────────────────
+  综合风险分          0.1756      0.3245      +0.1489 ⬆️
+  电压风险            0.1234      0.2567      +0.1333 ⬆️
+  温度风险            0.1456      0.3789      +0.2333 ⬆️
+  充电风险            0.1678      0.2890      +0.1212 ⬆️
+  负荷风险            0.1345      0.2456      +0.1111 ⬆️
+  故障风险            0.0890      0.1567      +0.0677 ⬆️
+─────────────────────────────────────────────────────────────
+
+[INFO] 对比图已保存: output/figures/risk_comparison.png
+
+══════════════════════════════════════════════════════════════
+  高温高SOC静置 专项对比（时长统计）
+══════════════════════════════════════════════════════════════
+[INFO] 正在读取风险车辆数据...
+[INFO] 正在读取正常车辆数据...
+
+  【风险车辆】(7 辆)
+  VIN                    数据跨度  高温高SOC  普通熄火    总静置  高温占比    静置均温  最高温
+  ────────────────────────────────────────────────────────────────────────────────────────────────
+  LC0DF4CD0R6051133        45.2天      18.3h      32.1h     56.8h    32.2%     38.2°C   42.1°C 🔴
+  LC0DF4CD0R6051147        38.7天      12.5h      28.4h     48.3h    25.9%     36.8°C   40.5°C 🟡
+  ...
+
+  【均值统计】
+    高温高SOC静置时长:     14.82 h  (中位数: 13.20 h)
+    普通熄火静置时长:      29.45 h
+    总静置时长:            51.23 h
+    高温高SOC占静置比:     28.9%
+    静置期间均温:          37.3 °C
+    历史最高温度:          41.2 °C
+
+  【正常车辆】(8 辆)
+  ...
+  【均值统计】
+    高温高SOC静置时长:      2.15 h  (中位数: 1.95 h)
+    ...
+
+══════════════════════════════════════════════════════════════
+  统计显著性检验（Mann-Whitney U Test）
+══════════════════════════════════════════════════════════════
+  指标                       正常均值      风险均值    差异倍数       P值   显著性
+  ────────────────────────────────────────────────────────────────────────────
+  高温高SOC静置时长(h)           2.15        14.82      6.89x    0.0012      **
+  静置期间均温(°C)              28.10        37.30      1.33x    0.0034      **
+  历史最高温度(°C)              35.40        41.20      1.16x    0.0089      **
+  ────────────────────────────────────────────────────────────────────────────
+  * p<0.05  ** p<0.01  *** p<0.001
+
+[INFO] 高温高SOC静置时长对比图已保存: output/figures/hot_soc_static_duration_comparison.png
+
+✅ 全部任务完成
+```
+
+---
+
+## 关键算法
+
+### 1. VIN级标签聚合算法
+
+```python
+# 输入：行级 risk_label (0/1)
+# 输出：VIN级 is_risk_vehicle (0/1)
+
+for vin in all_vins:
+    records = df[df['vin'] == vin]
+    risk_ratio = (records['risk_label'] == 1).mean()
+    
+    if risk_ratio > 0.3:  # 阈值可调
+        is_risk_vehicle[vin] = 1  # 风险车辆
+    else:
+        is_risk_vehicle[vin] = 0  # 正常车辆
+```
+
+**设计理由**：
+- 行级标签可能有噪声（单条记录异常不代表整车风险）
+- 用比例聚合更鲁棒（容忍少量误标）
+- 阈
